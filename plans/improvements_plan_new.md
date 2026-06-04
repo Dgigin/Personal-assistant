@@ -1,6 +1,6 @@
 # Проект `excel_converter` — Единый план и документация
 
-> **Дата последнего обновления:** 2026-06-04 (v9)
+> **Дата последнего обновления:** 2026-06-04 (v10)
 > **Единый файл,** заменивший: `architecture_analysis.md`, `audit_report.md`, `improvements_plan.md`, `security_audit_report.md`, `vision_integration_plan.md`, `fix_implementation_plan.md`, `new_features_plan.md`
 
 ---
@@ -13,7 +13,7 @@ f:/excel_converter/
 ├── wsgi.py                 # Точка входа для Waitress (production)
 ├── requirements.txt        # Зависимости
 ├── version.json            # Версия приложения + репозиторий GitHub
-├── run.bat                 # Запуск с автоустановкой зависимостей
+├── run.bat                 # Запуск с автоустановкой зависимостей + очистка stale update.bat (v1.0.5)
 ├── install_deps.bat        # Установка Python-зависимостей
 ├── setup_env.py            # Генератор .env с уникальным SECRET_KEY (v1.0.3)
 ├── installer.iss           # Inno Setup скрипт для сборки установщика
@@ -975,9 +975,35 @@ POST /api/constructor/detect_headers
 ```
 "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
 ```
-Готовый файл: `Output/ExcelConverter-Setup-1.0.4.exe`
+Готовый файл: `Output/ExcelConverter-Setup-1.0.5.exe`
 
-### 31. 📦 Итоговый список файлов (04.06.2026)
+### 31. 🐛 Критический багфикс: update.bat (04.06.2026)
+
+**Проблема:** `install_update()` в [`updater.py`](src/updater.py:317) генерировал `update.bat`, который использовал `tar -xf` (отсутствует на некоторых Windows) и `PowerShell Expand-Archive` (ошибка "Not enough memory" в Program Files). При обновлении v1.0.2→v1.0.3 `update.bat` падал, не успевал удалить себя (`del "%~f0"`), и при каждом перезапуске сервера запускался снова, показывая ту же ошибку.
+
+**Решение (v1.0.4):**
+- Добавлен `_create_apply_script()` — генерирует `apply_update.py`, который распаковывает ZIP через Python `zipfile.ZipFile` (гарантированно доступен)
+- `update.bat` теперь просто вызывает `python apply_update.py <zip> <target>`
+
+**Решение (v1.0.5):**
+- В [`run.bat`](run.bat:13) добавлена очистка stale файлов при старте:
+  ```batch
+  if exist "%~dp0update.bat" del "%~dp0update.bat"
+  if exist "%~dp0apply_update.py" del "%~dp0apply_update.py"
+  if exist "%~dp0update_pending.flag" del "%~dp0update_pending.flag"
+  ```
+- В [`app.py`](app.py:74) подавлены логи Werkzeug в консоли:
+  ```python
+  logging.getLogger('werkzeug').setLevel(logging.WARNING)
+  ```
+
+**Выпущенные релизы:**
+| Версия | Дата | Ссылка |
+|--------|------|--------|
+| v1.0.4 | 04.06.2026 | https://github.com/Dgigin/Personal-assistant/releases/tag/v1.0.4 |
+| v1.0.5 | 04.06.2026 | https://github.com/Dgigin/Personal-assistant/releases/tag/v1.0.5 |
+
+### 32. 📦 Итоговый список файлов (04.06.2026)
 
 ```
 f:/excel_converter/
