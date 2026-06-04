@@ -20,7 +20,7 @@ from ..models.departments import load_departments, save_departments
 from ..models.expense_articles import load_expense_articles, save_expense_articles
 from ..models.profiles import load_profile, save_profile, list_profiles, delete_profile
 from ..services.converter import transform_excel_with_mapping
-from ..utils.file_utils import safe_remove, generate_temp_path
+from ..utils.file_utils import safe_remove, generate_temp_path, read_file_to_df
 
 # ---------------------------------------------------------------------------
 # Blueprint
@@ -270,11 +270,15 @@ def get_file_columns():
 
     upload_dir = _cfg('uploads')
     filename = secure_filename(file.filename)
-    temp_path = os.path.join(upload_dir, f"temp_{uuid.uuid4().hex}.xlsx")
+    # Сохраняем с оригинальным расширением (.xlsx, .xls, .csv)
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ('.xlsx', '.xls', '.csv'):
+        ext = '.xlsx'
+    temp_path = os.path.join(upload_dir, f"temp_{uuid.uuid4().hex}{ext}")
     file.save(temp_path)
 
     try:
-        df = pd.read_excel(temp_path, sheet_name=0, nrows=0)
+        df = read_file_to_df(temp_path, sheet_name=0, nrows=0)
         columns = df.columns.tolist()
         if len(columns) < 1:
             return jsonify({'error': 'Файл не содержит столбцов'}), 400

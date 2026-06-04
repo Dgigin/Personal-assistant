@@ -978,7 +978,7 @@ POST /api/constructor/detect_headers
 ```
 Готовый файл: `Output/ExcelConverter-Setup-1.0.5.exe`
 
-### 31. 🐛 Критический багфикс: update.bat (04.06.2026)
+### 31. 🐛 Критический багфикс: update.bat (04.06.2026) — исправлено в v1.0.6
 
 **Проблема:** `install_update()` в [`updater.py`](src/updater.py:317) генерировал `update.bat`, который использовал `tar -xf` (отсутствует на некоторых Windows) и `PowerShell Expand-Archive` (ошибка "Not enough memory" в Program Files). При обновлении v1.0.2→v1.0.3 `update.bat` падал, не успевал удалить себя (`del "%~f0"`), и при каждом перезапуске сервера запускался снова, показывая ту же ошибку.
 
@@ -998,12 +998,36 @@ POST /api/constructor/detect_headers
   logging.getLogger('werkzeug').setLevel(logging.WARNING)
   ```
 
-**Решение (v1.0.6):**
-- Из [`update.bat`](src/updater.py:337) убрана строка `del "%~f0"` — Windows не может удалить запущенный batch-файл, что вызывало ошибку `"The batch file cannot be found. Not enough memory resources..."`. Теперь очистка stale `update.bat` полностью возложена на [`run.bat`](run.bat) при следующем запуске.
-- В [`app.py`](app.py:77) уровень логгера Werkzeug повышен с `WARNING` до `ERROR`, чтобы подавить сообщение `"WARNING: This is a development server"` (логируется на `INFO`):
-  ```python
-  logging.getLogger('werkzeug').setLevel(logging.ERROR)
-  ```
+**Решение (v1.0.6) — ПОЛНОСТЬЮ ПЕРЕПИСАНА ЛОГИКА:**
+
+❌ **Первая попытка (не сработала):** Просто убрать `del "%~f0"` из шаблона `update.bat` в новом `updater.py`. **Корневая причина:** `update.bat` создаётся **текущим запущенным сервером** (старой версией кода). Удаление строки из нового кода не влияет на то, какой `update.bat` будет создан — старый сервер всё равно генерирует батник с `del "%~f0"`.
+
+✅ **Настоящее исправление — перенос всей логики в `apply_update.py`:**
+
+1. **`_create_apply_script()`** ([`src/updater.py:224`](src/updater.py:224)) — теперь принимает `python_cmd` и `app_path`; генерируемый скрипт:
+   - **Нейтрализует `update.bat`** перезаписью на `@exit /b 0\r\n` — Windows не может удалить запущенный батник, но может перезаписать его из Python
+   - Распаковывает ZIP через `zipfile.ZipFile`
+   - Обрабатывает вложенную папку (GitHub добавляет `repo-branch/` префикс)
+   - Удаляет архив, `update_pending.flag`, сам себя и `update.bat`
+   - Запускает `app.py` через `subprocess.Popen([python_exe, app_script])` (надёжнее `start ""` в batch)
+   
+2. **`install_update()`** ([`src/updater.py:349`](src/updater.py:349)) — `update.bat` теперь минимален:
+   ```batch
+   @echo off
+   chcp 65001 > nul
+   echo Обновление Excel Converter...
+   ping 127.0.0.1 -n 4 > nul
+   echo Распаковка обновления...
+   "python" "apply_update.py" "update.zip" "C:\Program Files (x86)\Excel Converter"
+   exit /b 0
+   ```
+   Никаких `del "%~f0"`, никакого `start "" app.py`.
+
+3. **`app.py:76-77`** — уровень логгера Werkzeug изменён с `WARNING` на `ERROR`:
+   ```python
+   logging.getLogger('werkzeug').setLevel(logging.ERROR)
+   ```
+   Предупреждение "WARNING: This is a development server" логируется на `INFO`, поэтому `WARNING` не сработал бы.
 
 **Выпущенные релизы:**
 | Версия | Дата | Ссылка |
@@ -1011,6 +1035,8 @@ POST /api/constructor/detect_headers
 | v1.0.4 | 04.06.2026 | https://github.com/Dgigin/Personal-assistant/releases/tag/v1.0.4 |
 | v1.0.5 | 04.06.2026 | https://github.com/Dgigin/Personal-assistant/releases/tag/v1.0.5 |
 | v1.0.6 | 04.06.2026 | https://github.com/Dgigin/Personal-assistant/releases/tag/v1.0.6 |
+
+**Важно:** Первый выпуск v1.0.6 был удалён и пересоздан (ID 334483959 → новый), т.к. первая попытка не содержала настоящего исправления. Текущий v1.0.6 содержит корректный код.
 
 ### 32. 📦 Итоговый список файлов (04.06.2026)
 

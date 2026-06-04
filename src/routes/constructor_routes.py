@@ -193,8 +193,8 @@ def upload_excel():
 
     # Проверка расширения
     filename = file.filename.lower()
-    if not (filename.endswith('.xlsx') or filename.endswith('.xls')):
-        return jsonify({'error': 'Поддерживаются только файлы .xlsx и .xls'}), 400
+    if not (filename.endswith('.xlsx') or filename.endswith('.xls') or filename.endswith('.csv')):
+        return jsonify({'error': 'Поддерживаются только файлы .xlsx, .xls и .csv'}), 400
 
     upload_dir = _cfg('uploads')
     os.makedirs(upload_dir, exist_ok=True)

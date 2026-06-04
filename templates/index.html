@@ -379,28 +379,36 @@
         #updateBanner .btn-restart:hover {
             background: #388E3C;
         }
-        #updateProgress {
+        #updateProgress, .constructor-progress {
             margin-top: 10px;
             display: none;
         }
-        #updateProgress .progress-bar-bg {
+        #updateProgress .progress-bar-bg,
+        .constructor-progress .progress-bar-bg {
             width: 100%;
             height: 6px;
             background: #e0e0e0;
             border-radius: 3px;
             overflow: hidden;
         }
-        #updateProgress .progress-bar-fill {
+        #updateProgress .progress-bar-fill,
+        .constructor-progress .progress-bar-fill {
             height: 100%;
             background: #4CAF50;
             border-radius: 3px;
             width: 0%;
             transition: width 0.3s ease;
         }
-        #updateProgress .progress-text {
+        #updateProgress .progress-text,
+        .constructor-progress .progress-text {
             font-size: 12px;
             color: #666;
             margin-top: 4px;
+        }
+        .constructor-progress .progress-label {
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 4px;
         }
 
         #versionIndicator {
@@ -571,7 +579,7 @@
                     <button id="resetConvertBtn" class="btn-secondary btn-sm" title="Сбросить все данные">🗑 Сбросить</button>
                 </div>
                 <form id="convertForm" enctype="multipart/form-data">
-                    <div class="form-group"><label>📂 Исходный файл (.xlsx)</label><input type="file" id="sourceFile" accept=".xlsx, .xls" title="Выберите Excel-файл для преобразования"></div>
+                    <div class="form-group"><label>📂 Исходный файл (.xlsx, .csv)</label><input type="file" id="sourceFile" accept=".xlsx, .xls, .csv" title="Выберите Excel- или CSV-файл для преобразования"></div>
                     <div class="form-group">
                         <label>📋 Выберите профиль</label>
                         <select id="profileSelect" name="profile_name" title="Выберите сохранённый профиль для маппинга колонок"><option value="">-- Загрузите профили --</option></select>
@@ -614,7 +622,7 @@
                 </div>
                 <div class="flex-row">
                     <div class="form-group" style="flex:2;"><label>Имя профиля</label><input type="text" id="profileName" placeholder="Например: Коммунальный" title="Введите название нового профиля маппинга"></div>
-                    <div class="form-group" style="flex:1;"><label>Файл-образец</label><input type="file" id="sampleFile" accept=".xlsx, .xls" title="Загрузите файл-образец для определения структуры колонок"></div>
+                    <div class="form-group" style="flex:1;"><label>Файл-образец</label><input type="file" id="sampleFile" accept=".xlsx, .xls, .csv" title="Загрузите файл-образец для определения структуры колонок"></div>
                     <div class="form-group" style="flex:0;"><button type="button" id="loadColumnsBtn" title="Загрузить колонки из файла-образца для настройки маппинга">📥 Загрузить колонки</button></div>
                 </div>
                 <div id="mappingEditor" style="margin-top:20px;"><p>Загрузите файл-образец, чтобы получить список колонок. Задайте бюджет, статью, период.</p></div>
@@ -683,10 +691,17 @@
                 <div id="constructorStep1">
                     <div class="form-group">
                         <label>📂 Загрузите Excel-файл</label>
-                        <input type="file" id="constructorFile" accept=".xlsx, .xls" title="Выберите Excel-файл для построения сводной таблицы">
+                        <input type="file" id="constructorFile" accept=".xlsx, .xls, .csv" title="Выберите Excel- или CSV-файл для построения сводной таблицы">
                     </div>
                     <button type="button" id="constructorLoadBtn" class="btn-success" title="Загрузить выбранный файл в конструктор">📥 Загрузить</button>
                     <div id="constructorUploadStatus" style="margin-top:10px;"></div>
+                    <div id="constructorUploadProgress" class="constructor-progress">
+                        <div class="progress-label" id="constructorUploadProgressLabel">⏳ Загрузка файла...</div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" id="constructorUploadProgressFill"></div>
+                        </div>
+                        <div class="progress-text" id="constructorUploadProgressText">0%</div>
+                    </div>
                 </div>
 
                 <!-- Шаг 2: Выбор листа и просмотр данных (показывается после загрузки) -->
@@ -701,6 +716,13 @@
                             <div class="form-group" style="flex:0; align-self:flex-end;">
                                 <button id="constructorLoadSheetBtn" class="btn-secondary" title="Загрузить данные выбранного листа">📥 Загрузить</button>
                                 <span id="constructorLoadSheetSpinner" style="display:none;"><span class="spinner-sm"></span></span>
+                            </div>
+                            <div id="constructorSheetProgress" class="constructor-progress" style="margin-bottom:10px;">
+                                <div class="progress-label" id="constructorSheetProgressLabel">⏳ Загрузка данных листа...</div>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill" id="constructorSheetProgressFill"></div>
+                                </div>
+                                <div class="progress-text" id="constructorSheetProgressText">0%</div>
                             </div>
                         </div>
                         <div class="form-group" style="margin-top:10px;">
@@ -2626,6 +2648,23 @@
         }
     }
 
+    // Вспомогательная функция: управление индикаторами прогресса в Конструкторе
+    // type: 'upload' или 'sheet', pct: 0-100 или -1 чтобы скрыть, label: текст рядом с процентами
+    function setConstructorProgress(type, pct, label) {
+        const prefix = type === 'upload' ? 'constructorUpload' : 'constructorSheet';
+        const container = document.getElementById(prefix + 'Progress');
+        const fill = document.getElementById(prefix + 'ProgressFill');
+        const text = document.getElementById(prefix + 'ProgressText');
+        if (container) {
+            container.style.display = (pct >= 0 && pct <= 100) ? 'block' : 'none';
+        }
+        if (fill) fill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+        if (text) {
+            const pctStr = (pct > 0 && pct <= 100) ? ' ' + Math.round(pct) + '%' : '';
+            text.textContent = (label || '') + pctStr;
+        }
+    }
+
     // ------ Функции диалога определения заголовков ------
     function showHeaderDialog(sheetName, headerData) {
         _pendingHeaderData = { sheetName: sheetName, data: headerData };
@@ -2722,6 +2761,13 @@
         var spinnerEl = document.getElementById('constructorLoadSheetSpinner');
         if (spinnerEl) spinnerEl.style.display = 'inline-block';
         setConstructorLoading('constructorLoadSheetBtn', true, 'Загрузка...');
+        setConstructorProgress('sheet', 0);
+        let sheetPct = 0;
+        const sheetTimer = setInterval(() => {
+            sheetPct += Math.random() * 10 + 2;
+            if (sheetPct > 80) sheetPct = 80;
+            setConstructorProgress('sheet', Math.round(sheetPct));
+        }, 500);
         try {
             var body = {
                 file_id: constructorFileId,
@@ -2735,14 +2781,18 @@
                 body: JSON.stringify(body)
             });
             var data = await res.json();
+            clearInterval(sheetTimer);
             if (data.error) throw new Error(data.error);
             constructorAllColumns = data.columns || [];
             constructorDateColumns = data.date_columns || [];
             renderConstructorColumnsList(data.columns, data.dtypes);
             renderConstructorFilters(data.columns);
             renderConstructorPivotSelects(data.columns, constructorDateColumns);
+            setConstructorProgress('sheet', 100, '✅ Загружено');
             showMessage('constructorMessage', 'Загружено ' + data.total_rows + ' строк. Используйте фильтры или стройте сводную.', 'success');
         } catch (e) {
+            clearInterval(sheetTimer);
+            setConstructorProgress('sheet', -1);
             showMessage('constructorMessage', 'Ошибка: ' + e.message, 'error');
         } finally {
             if (spinnerEl) spinnerEl.style.display = 'none';
@@ -2763,18 +2813,30 @@
         const statusEl = document.getElementById('constructorUploadStatus');
         setConstructorLoading('constructorLoadBtn', true, 'Загрузка файла...');
         statusEl.innerHTML = '<em>⏳ Загрузка файла...</em>';
+        // Показываем прогресс-бар загрузки
+        setConstructorProgress('upload', 0);
+        let uploadPct = 0;
+        const uploadTimer = setInterval(() => {
+            uploadPct += Math.random() * 12 + 3;
+            if (uploadPct > 85) uploadPct = 85;
+            setConstructorProgress('upload', Math.round(uploadPct));
+        }, 400);
         try {
             const res = await fetch('/api/constructor/upload', { method: 'POST', body: formData });
             const data = await res.json();
+            clearInterval(uploadTimer);
             if (data.error) throw new Error(data.error);
             constructorFileId = data.file_id;
             statusEl.innerHTML = `<span class="success">✅ Файл "${data.filename}" загружен. Найдено листов: ${data.sheets.length}</span>`;
+            setConstructorProgress('upload', 100, '✅ Загружено');
             // Заполняем список листов
             const sheetSelect = document.getElementById('constructorSheetSelect');
             sheetSelect.innerHTML = data.sheets.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)} (${s.rows} строк, ${s.cols} колонок)</option>`).join('');
             document.getElementById('constructorStep2').style.display = 'block';
             showMessage('constructorMessage', 'Выберите лист и загрузите данные', 'success');
         } catch (e) {
+            clearInterval(uploadTimer);
+            setConstructorProgress('upload', -1); // скрыть
             statusEl.innerHTML = `<span class="error">❌ ${e.message}</span>`;
         } finally {
             setConstructorLoading('constructorLoadBtn', false);
@@ -2791,6 +2853,7 @@
         var spinnerEl = document.getElementById('constructorLoadSheetSpinner');
         if (spinnerEl) spinnerEl.style.display = 'inline-block';
         setConstructorLoading('constructorLoadSheetBtn', true, 'Проверка заголовков...');
+        setConstructorProgress('sheet', 0, '⏳ Проверка заголовков...');
         try {
             // Проверяем, есть ли уже сохранённая настройка для этого листа
             var savedConfig = constructorSheetHeaderConfig[sheetName];
@@ -2809,6 +2872,7 @@
             if (headerData.error) throw new Error(headerData.error);
             // Если needs_review или unnamed_ratio > 0 — показываем диалог
             if (headerData.needs_review || headerData.unnamed_ratio > 0) {
+                setConstructorProgress('sheet', -1); // скрыть — диалог покажет выбор
                 showHeaderDialog(sheetName, headerData);
                 return;
             }
@@ -2817,6 +2881,7 @@
         } catch (e) {
             if (spinnerEl) spinnerEl.style.display = 'none';
             setConstructorLoading('constructorLoadSheetBtn', false);
+            setConstructorProgress('sheet', -1);
             showMessage('constructorMessage', 'Ошибка: ' + e.message, 'error');
         }
     });
@@ -3963,6 +4028,8 @@
         constructorLastRowColumns = [];
         document.getElementById('constructorFile').value = '';
         document.getElementById('constructorUploadStatus').innerHTML = '';
+        setConstructorProgress('upload', -1);
+        setConstructorProgress('sheet', -1);
         document.getElementById('constructorStep2').style.display = 'none';
         document.getElementById('constructorResult').style.display = 'none';
         document.getElementById('constructorSheetSelect').innerHTML = '';
