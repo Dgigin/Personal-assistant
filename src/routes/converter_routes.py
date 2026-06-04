@@ -29,7 +29,17 @@ converter_bp = Blueprint('converter', __name__)
 
 
 def _cfg(*parts):
-    """Вспомогательная функция: возвращает путь от Config.BASE_DIR."""
+    """Вспомогательная функция: возвращает путь к поддиректориям."""
+    if not parts:
+        return Config.USER_DATA_DIR
+    first = parts[0]
+    rest = parts[1:]
+    if first == 'config':
+        return os.path.join(Config.CONFIG_DIR, *rest)
+    elif first == 'profiles':
+        return os.path.join(Config.PROFILES_DIR, *rest)
+    elif first == 'uploads':
+        return os.path.join(Config.UPLOAD_DIR, *rest)
     return os.path.join(Config.BASE_DIR, *parts)
 
 
