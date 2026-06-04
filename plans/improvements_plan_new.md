@@ -1,6 +1,6 @@
 # Проект `excel_converter` — Единый план и документация
 
-> **Дата последнего обновления:** 2026-06-04 (v7)
+> **Дата последнего обновления:** 2026-06-04 (v8)
 > **Единый файл,** заменивший: `architecture_analysis.md`, `audit_report.md`, `improvements_plan.md`, `security_audit_report.md`, `vision_integration_plan.md`, `fix_implementation_plan.md`, `new_features_plan.md`
 
 ---
@@ -15,8 +15,10 @@ f:/excel_converter/
 ├── version.json            # Версия приложения + репозиторий GitHub
 ├── run.bat                 # Запуск с автоустановкой зависимостей
 ├── install_deps.bat        # Установка Python-зависимостей
+├── setup_env.py            # Генератор .env с уникальным SECRET_KEY (v1.0.3)
 ├── installer.iss           # Inno Setup скрипт для сборки установщика
 ├── .env                    # SECRET_KEY, AUTH_* , DEEPSEEK_API_KEY
+├── .env.example            # Шаблон .env (SECRET_KEY=__GENERATE_ME__)
 ├── .gitignore
 │
 ├── config/                 # Конфигурационные JSON + SQLite
@@ -82,7 +84,7 @@ f:/excel_converter/
 | Планировщик | APScheduler (очистка uploads 30 мин, сессий 6ч, архивация задач 5 мин) |
 | Аутентификация | Flask session + куки (сервер-сайд, Flask-Session) |
 | Rate limiting | Flask-Limiter (5/min на /api/login) |
-| Автообновление | GitHub Releases API + `src/updater.py` (проверка раз в 6ч, скачивание ZIP, update.bat) |
+| Автообновление | GitHub Releases API + `src/updater.py` (проверка раз в 6ч, скачивание ZIP) — репозиторий `Dgigin/Personal-assistant` (публичный) |
 | Установщик | Inno Setup (`installer.iss`, сборка .exe) |
 
 ---
@@ -107,7 +109,7 @@ f:/excel_converter/
 | M5 | 🟡 MEDIUM | Нет ротации логов | ✅ RotatingFileHandler (10 MB × 5) |
 | M6 | 🟡 MEDIUM | Нет CSRF-защиты (mitigated через SameSite+Lax + Content-Type check) | ⚠️ Частично прикрыто, предлагается Origin/Referer middleware |
 | M7 | 🟡 MEDIUM | `unsafe-inline` в CSP (весь JS/CSS встроен в HTML) | ⚠️ Вынести в статические файлы — большая реорганизация |
-| L1 | 🟢 LOW | SECRET_KEY может быть пустым — теперь обязателен | ✅ Фатальная ошибка при старте, если не задан |
+| L1 | 🟢 LOW | SECRET_KEY может быть пустым — теперь обязателен | ✅ Фатальная ошибка при старте, если не задан. Уникальный ключ генерируется `setup_env.py` |
 | L2 | 🟢 LOW | clean_old_uploads не вызывался при старте через wsgi.py | ✅ Вызов перенесён внутрь `create_app()` |
 | L3 | 🟢 LOW | SESSION_COOKIE_SECURE не настраивался | ✅ Настраивается через .env |
 | L4 | 🟢 LOW | Нет rate limiting на /api/login | ✅ Flask-Limiter, 5 запросов в минуту |
@@ -924,7 +926,7 @@ POST /api/constructor/detect_headers
 **Задача:** Добавить механизм автоматической проверки и установки обновлений через GitHub Releases.
 
 **Созданные файлы:**
-- [`version.json`](version.json) — файл с текущей версией `1.0.0` и именем репозитория `zhizhin/excel_converter`
+- [`version.json`](version.json) — файл с текущей версией и именем репозитория `Dgigin/Personal-assistant`
 - [`src/updater.py`](src/updater.py:1) — модуль с функциями:
   - `get_current_version()` — читает версию из `version.json`
   - `check_for_update()` — GET к `https://api.github.com/repos/{repo}/releases/latest`, сравнивает версии
@@ -959,27 +961,32 @@ POST /api/constructor/detect_headers
 - [`installer.iss`](installer.iss:1) — скрипт Inno Setup:
   - Устанавливает в `%ProgramFiles%\ExcelConverter`
   - Ярлыки: меню Пуск, рабочий стол (опционально)
-  - Упаковка: `app.py`, `wsgi.py`, `requirements.txt`, `version.json`, `README.md`, `.env` (если нет), все `src/*.py`, `templates/*`, `config/*.json`, `profiles/*.json`
-  - После установки: запускает `install_deps.bat` (pip install -r requirements.txt)
+  - Упаковка: `app.py`, `wsgi.py`, `requirements.txt`, `version.json`, `README.md`, `.env.example` (НЕ `.env`!), `setup_env.py`, все `src/*.py`, `templates/*`
+  - **ВНИМАНИЕ:** `config/*.json` и `profiles/*.json` НЕ копируются — каждый гость получает чистые данные
+  - `[Dirs]` — создаёт все папки в `%APPDATA%\Excel Converter` (config, profiles, uploads, logs, temp)
+  - После установки: запускает `install_deps.bat` (pip install -r requirements.txt → создаёт .env с уникальным SECRET_KEY)
   - Проверка наличия Python при старте установщика
 
-- [`run.bat`](run.bat:1) — запуск приложения с автоустановкой зависимостей
-- [`install_deps.bat`](install_deps.bat:1) — установка Python-зависимостей
+- [`run.bat`](run.bat:1) — запуск приложения с автоустановкой зависимостей (вызывает `setup_env.py` для создания .env)
+- [`install_deps.bat`](install_deps.bat:1) — установка Python-зависимостей (вызывает `setup_env.py` для создания .env)
+- [`setup_env.py`](setup_env.py:1) — скрипт генерации .env с уникальным SECRET_KEY (v1.0.3)
 
 **Сборка установщика:**
 ```
 "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
 ```
-Готовый файл: `Output/ExcelConverter-Setup-1.0.0.exe`
+Готовый файл: `Output/ExcelConverter-Setup-1.0.3.exe`
 
-### 31. 📦 Итоговый список новых файлов (04.06.2026)
+### 31. 📦 Итоговый список файлов (04.06.2026)
 
 ```
 f:/excel_converter/
 ├── version.json              # Версия приложения + репозиторий GitHub
 ├── run.bat                   # Запуск с автоустановкой зависимостей
 ├── install_deps.bat          # Установка зависимостей
+├── setup_env.py              # Генератор .env с уникальным SECRET_KEY (v1.0.3)
 ├── installer.iss             # Inno Setup скрипт
+├── .env.example              # Шаблон .env (SECRET_KEY=__GENERATE_ME__)
 ├── update.bat                # (создаётся динамически при обновлении)
 ├── src/
 │   ├── updater.py            # Модуль проверки/скачивания/установки обновлений
