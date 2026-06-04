@@ -19,12 +19,21 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Если приложение установлено в Program Files — используем %APPDATA% для временных файлов
+_is_in_program_files = 'PROGRAMFILES' in os.environ and 'Program Files' in _PROJECT_ROOT
+if _is_in_program_files:
+    _data_dir = os.path.join(os.environ.get('APPDATA', _PROJECT_ROOT), 'Excel Converter')
+else:
+    _data_dir = _PROJECT_ROOT
+
 # Путь к файлу версии относительно корня проекта
-VERSION_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "version.json")
-# Временная папка для скачивания обновлений
-UPDATE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "temp", "update")
+VERSION_FILE = os.path.join(_PROJECT_ROOT, "version.json")
+# Временная папка для скачивания обновлений (в %APPDATA% если установлено в Program Files)
+UPDATE_DIR = os.path.join(_data_dir, "temp", "update")
 # Флаг pending-обновления
-PENDING_FLAG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "update_pending.flag")
+PENDING_FLAG = os.path.join(_PROJECT_ROOT, "update_pending.flag")
 
 
 def get_current_version() -> str:

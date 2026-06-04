@@ -25,9 +25,11 @@ echo [*] Проверка зависимостей...
 python -c "import flask" 2>nul
 if errorlevel 1 (
     echo [*] Установка зависимостей...
-    pip install -r "%~dp0requirements.txt"
+    pip install --user -r "%~dp0requirements.txt"
     if errorlevel 1 (
         echo [ERROR] Ошибка установки зависимостей.
+        echo.
+        echo Попробуйте запустить install_deps.bat от имени администратора.
         pause
         exit /b 1
     )

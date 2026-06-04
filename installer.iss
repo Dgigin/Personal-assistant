@@ -52,12 +52,23 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]
 Name: "desktopicon"; Description: "Создать ярлык на рабочем столе"; GroupDescription: "Дополнительные задачи:"; Flags: checkedonce
 
+[Dirs]
+; Директории для пользовательских данных (за пределами Program Files)
+Name: "{userappdata}\Excel Converter\logs"
+Name: "{userappdata}\Excel Converter\uploads"
+Name: "{userappdata}\Excel Converter\flask_session"
+Name: "{userappdata}\Excel Converter\temp\update"
+
 [Files]
 ; Корневые файлы
 Source: "app.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "requirements.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "version.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "wsgi.py"; DestDir: "{app}"; Flags: ignoreversion
+
+; Батники для запуска и установки зависимостей
+Source: "run.bat"; DestDir: "{app}"; Flags: ignoreversion
+Source: "install_deps.bat"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Папка src (рекурсивно)
 Source: "src\*.py"; DestDir: "{app}\src"; Flags: ignoreversion recursesubdirs
@@ -81,8 +92,8 @@ Source: "plans\*.md"; DestDir: "{app}\plans"; Flags: ignoreversion recursesubdir
 ; README
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
 
-; .env.example (если есть)
-Source: ".env"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
+; .env.example — шаблон с гостевыми данными (будет скопирован в .env при установке)
+Source: ".env.example"; DestDir: "{app}"; Flags: ignoreversion
 
 ; update.bat (если есть — для автообновлений)
 Source: "update.bat"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist

@@ -85,7 +85,7 @@ def create_app() -> Flask:
     app.secret_key = Config.SECRET_KEY
 
     # Настройки Flask session (сервер-сайд, файловое хранилище)
-    SESSION_DIR = os.path.join(Config.BASE_DIR, 'flask_session')
+    SESSION_DIR = os.path.join(Config.USER_DATA_DIR, 'flask_session')
     app.config.update(
         SESSION_TYPE='filesystem',
         SESSION_FILE_DIR=SESSION_DIR,
