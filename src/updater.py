@@ -346,8 +346,7 @@ ping 127.0.0.1 -n 4 > nul
 echo Распаковка обновления...
 "{python_cmd}" "{apply_script}" "{zip_path}" "{target_dir}"
 
-:: Удаляем update.bat
-del "%~f0"
+:: update.bat удалится при следующем запуске run.bat (очистка stale-файлов)
 
 :: Запускаем приложение
 echo Запуск приложения...
