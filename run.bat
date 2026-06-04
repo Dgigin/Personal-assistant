@@ -20,6 +20,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
+:: Создаём .env из .env.example, если его нет (с уникальным SECRET_KEY)
+if not exist "%~dp0.env" (
+    python "%~dp0setup_env.py"
+)
+
 :: Проверяем зависимости
 echo [*] Проверка зависимостей...
 python -c "import flask" 2>nul
