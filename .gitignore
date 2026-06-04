@@ -12,6 +12,9 @@ build/
 venv/
 env/
 
+# Release scripts (may contain tokens)
+create_release.py
+
 # IDE
 .vs/
 .vscode/

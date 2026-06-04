@@ -11,9 +11,9 @@
 ;   "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
 
 #define MyAppName "Excel Converter"
-#define MyAppVersion "1.0.1"
-#define MyAppPublisher "zhizhin"
-#define MyAppURL "https://github.com/zhizhin/excel_converter"
+#define MyAppVersion "1.0.3"
+#define MyAppPublisher "Dgigin"
+#define MyAppURL "https://github.com/Dgigin/Personal-assistant"
 #define MyAppExeName "run.bat"
 
 [Setup]
@@ -72,6 +72,9 @@ Source: "wsgi.py"; DestDir: "{app}"; Flags: ignoreversion
 ; Батники для запуска и установки зависимостей
 Source: "run.bat"; DestDir: "{app}"; Flags: ignoreversion
 Source: "install_deps.bat"; DestDir: "{app}"; Flags: ignoreversion
+
+; Скрипт генерации .env с уникальным SECRET_KEY
+Source: "setup_env.py"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Папка src (рекурсивно)
 Source: "src\*.py"; DestDir: "{app}\src"; Flags: ignoreversion recursesubdirs

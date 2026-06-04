@@ -99,9 +99,16 @@ def check_for_update() -> Optional[Dict[str, Any]]:
     current = get_current_version()
     api_url = f"https://api.github.com/repos/{repo}/releases/latest"
 
+    # Токен для доступа к приватному репозиторию
+    token = os.environ.get("GITHUB_TOKEN", "")
+    headers = {}
+    if token:
+        headers["Authorization"] = f"token {token}"
+        logger.info("Используется GITHUB_TOKEN для авторизации")
+
     try:
         logger.info(f"Проверка обновлений: {api_url}")
-        resp = requests.get(api_url, timeout=15)
+        resp = requests.get(api_url, headers=headers, timeout=15)
         resp.raise_for_status()
         data = resp.json()
 
@@ -120,15 +127,15 @@ def check_for_update() -> Optional[Dict[str, Any]]:
                 "published_at": ""
             }
 
-        # Ищем zip-архив в assets
+        # Ищем архив (zip, 7z) в assets
         download_url = ""
         for asset in data.get("assets", []):
             name = asset.get("name", "")
-            if name.endswith(".zip"):
+            if name.endswith(".zip") or name.endswith(".7z"):
                 download_url = asset.get("browser_download_url", "")
                 break
 
-        # Если zip не найден, используем source code archive
+        # Если архив не найден, используем source code archive
         if not download_url:
             download_url = data.get("zipball_url", "")
 
