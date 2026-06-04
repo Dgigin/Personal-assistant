@@ -27,6 +27,11 @@ uploads/
 
 # Database
 config/chat_history.db
+config/constructor_temp_files.json
+
+# Sessions & Logs
+flask_session/
+logs/
 
 # OS
 Thumbs.db
