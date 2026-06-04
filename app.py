@@ -73,6 +73,9 @@ logging.basicConfig(
     handlers=[_file_handler, _console_handler],
 )
 
+# Подавляем лог HTTP-запросов Werkzeug в консоли (оставляем в файле)
+logging.getLogger('werkzeug').setLevel(logging.WARNING)
+
 logger = logging.getLogger(__name__)
 
 

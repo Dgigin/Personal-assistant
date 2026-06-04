@@ -1,6 +1,6 @@
 # Проект `excel_converter` — Единый план и документация
 
-> **Дата последнего обновления:** 2026-06-04 (v8)
+> **Дата последнего обновления:** 2026-06-04 (v9)
 > **Единый файл,** заменивший: `architecture_analysis.md`, `audit_report.md`, `improvements_plan.md`, `security_audit_report.md`, `vision_integration_plan.md`, `fix_implementation_plan.md`, `new_features_plan.md`
 
 ---
@@ -37,7 +37,7 @@ f:/excel_converter/
 │   ├── auth.py             # Сессионная аутентификация (check_session)
 │   ├── types.py            # TypedDict для структур данных (PivotResult, FilterDef...)
 │   ├── scheduler.py        # APScheduler — очистка uploads, сессий, архивация задач
-│   ├── updater.py          # Проверка/скачивание/установка обновлений через GitHub Releases
+│   ├── updater.py          # Проверка/скачивание/установка обновлений через GitHub Releases (v1.0.4: fix — zipfile вместо tar/PowerShell)
 │   ├── models/
 │   │   ├── tasks.py        # Модель задач (load/save/archive)
 │   │   ├── chat_db.py      # SQLite для чатов
@@ -975,7 +975,7 @@ POST /api/constructor/detect_headers
 ```
 "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
 ```
-Готовый файл: `Output/ExcelConverter-Setup-1.0.3.exe`
+Готовый файл: `Output/ExcelConverter-Setup-1.0.4.exe`
 
 ### 31. 📦 Итоговый список файлов (04.06.2026)
 

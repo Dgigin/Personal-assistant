@@ -942,3 +942,18 @@ FileNotFoundError: [WinError 2] Не удается найти указанны�
 2026-06-04 16:45:09 [INFO] apscheduler.executors.default: Job "Архивация выполненных задач (trigger: interval[0:05:00], next run at: 2026-06-04 16:50:09 MSK)" executed successfully
 2026-06-04 16:50:09 [INFO] apscheduler.executors.default: Running job "Архивация выполненных задач (trigger: interval[0:05:00], next run at: 2026-06-04 16:55:09 MSK)" (scheduled at 2026-06-04 16:50:09.122213+03:00)
 2026-06-04 16:50:09 [INFO] apscheduler.executors.default: Job "Архивация выполненных задач (trigger: interval[0:05:00], next run at: 2026-06-04 16:55:09 MSK)" executed successfully
+2026-06-04 19:39:27 [INFO] src.scheduler: Очищены файлы сессий при старте приложения
+2026-06-04 19:39:27 [INFO] app: Аутентификация включена
+2026-06-04 19:39:27 [INFO] apscheduler.scheduler: Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-04 19:39:27 [INFO] src.scheduler: Планировщик очистки uploads запущен: каждые 1800 сек
+2026-06-04 19:39:27 [INFO] apscheduler.scheduler: Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-04 19:39:27 [INFO] src.scheduler: Планировщик архивации задач запущен: каждые 300 сек
+2026-06-04 19:39:27 [INFO] apscheduler.scheduler: Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-04 19:39:27 [INFO] src.scheduler: Планировщик очистки сессий запущен: каждые 6 часов, удалять старше 7 дней
+2026-06-04 19:39:27 [INFO] apscheduler.scheduler: Added job "Очистка старых загруженных файлов" to job store "default"
+2026-06-04 19:39:27 [INFO] apscheduler.scheduler: Added job "Архивация выполненных задач" to job store "default"
+2026-06-04 19:39:27 [INFO] apscheduler.scheduler: Added job "Очистка устаревших файлов сессий" to job store "default"
+2026-06-04 19:39:27 [INFO] apscheduler.scheduler: Scheduler started
+2026-06-04 19:39:27 [INFO] waitress: Serving on http://0.0.0.0:5000
+2026-06-04 19:39:33 [INFO] src.auth: Пользователь Administratorushka вошёл в систему
+2026-06-04 19:39:33 [WARNING] waitress.queue: Task queue depth is 1
