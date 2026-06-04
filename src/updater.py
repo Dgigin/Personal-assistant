@@ -221,10 +221,103 @@ def download_update(download_url: str, progress_callback=None) -> Optional[str]:
         return None
 
 
+def _create_apply_script(project_root: str) -> str:
+    """
+    Создаёт apply_update.py — скрипт для распаковки обновления через Python zipfile.
+    Возвращает путь к созданному скрипту.
+    """
+    script_path = os.path.join(project_root, "apply_update.py")
+    script_content = '''# -*- coding: utf-8 -*-
+"""Автоматически создан модулем updater.py — распаковка обновления."""
+import zipfile
+import os
+import shutil
+import sys
+
+
+def main():
+    if len(sys.argv) < 3:
+        print("[!] Недостаточно аргументов: apply_update.py <zip_path> <target_dir>")
+        sys.exit(1)
+
+    zip_path = sys.argv[1]
+    target_dir = sys.argv[2]
+
+    if not os.path.exists(zip_path):
+        print(f"[!] Архив не найден: {zip_path}")
+        sys.exit(1)
+
+    print("[*] Распаковка обновления...")
+
+    with zipfile.ZipFile(zip_path) as z:
+        names = z.namelist()
+
+        # Определяем, есть ли вложенная папка (GitHub добавляет repo-branch)
+        top_dirs = set()
+        for n in names:
+            parts = n.split("/")
+            if len(parts) > 1 and parts[0]:
+                top_dirs.add(parts[0])
+
+        # Распаковываем
+        z.extractall(target_dir)
+
+        # Если файлы в подпапке — перемещаем на уровень выше
+        for d in top_dirs:
+            dp = os.path.join(target_dir, d)
+            app_py = os.path.join(dp, "app.py")
+            if os.path.exists(app_py):
+                print(f"[*] Перемещение файлов из {d}/...")
+                for fn in os.listdir(dp):
+                    if fn in ("update.bat", "apply_update.py"):
+                        continue
+                    src = os.path.join(dp, fn)
+                    dst = os.path.join(target_dir, fn)
+                    if os.path.isdir(src):
+                        if os.path.exists(dst):
+                            shutil.copytree(src, dst, dirs_exist_ok=True)
+                        else:
+                            shutil.copytree(src, dst)
+                    else:
+                        shutil.move(src, dst)
+                shutil.rmtree(dp)
+
+    # Удаляем архив
+    try:
+        os.remove(zip_path)
+        print("[*] Архив удалён")
+    except OSError:
+        pass
+
+    # Удаляем флаг pending
+    flag_path = os.path.join(target_dir, "update_pending.flag")
+    if os.path.exists(flag_path):
+        try:
+            os.remove(flag_path)
+        except OSError:
+            pass
+
+    # Удаляем сам apply_update.py
+    try:
+        os.remove(__file__)
+    except OSError:
+        pass
+
+    print("[OK] Обновление установлено")
+
+
+if __name__ == "__main__":
+    main()
+'''
+    with open(script_path, "w", encoding="utf-8") as f:
+        f.write(script_content)
+    return script_path
+
+
 def install_update(zip_path: str) -> bool:
     """
-    Устанавливает обновление: создаёт update.bat, который после рестарта
-    распаковывает архив поверх текущей директории.
+    Устанавливает обновление: создаёт apply_update.py и update.bat,
+    которые после рестарта распаковывают архив поверх текущей директории.
     Возвращает True, если подготовка к обновлению прошла успешно.
     """
     try:
@@ -235,7 +328,10 @@ def install_update(zip_path: str) -> bool:
         python_cmd = sys.executable or "python"
         app_path = os.path.join(project_root, "app.py")
 
-        # Создаём update.bat
+        # Создаём apply_update.py для распаковки
+        apply_script = _create_apply_script(project_root)
+
+        # Создаём update.bat (только запуск apply_update.py + перезапуск)
         update_bat_path = os.path.join(project_root, "update.bat")
 
         bat_content = f"""@echo off
@@ -246,33 +342,11 @@ echo.
 :: Ждём 3 секунды, чтобы сервер успел остановиться
 ping 127.0.0.1 -n 4 > nul
 
-:: Распаковываем обновление
+:: Распаковываем обновление через Python (надёжнее, чем tar/PowerShell)
 echo Распаковка обновления...
-if exist "{zip_path}" (
-    tar -xf "{zip_path}" -C "{target_dir}" 2>nul
-    if errorlevel 1 (
-        :: Если tar недоступен, используем PowerShell
-        powershell -command "Expand-Archive -Path '{zip_path}' -DestinationPath '{target_dir}' -Force"
-    )
-)
+"{python_cmd}" "{apply_script}" "{zip_path}" "{target_dir}"
 
-:: Если архив содержал вложенную папку (обычно repo-branch), перемещаем содержимое
-for /d %%i in ("{target_dir}\\*") do (
-    if exist "%%i\\app.py" (
-        echo Перемещение файлов из вложенной папки...
-        xcopy "%%i\\*" "{target_dir}\\" /E /Y
-        rmdir /S /Q "%%i"
-    )
-)
-
-:: Обновляем version.json, если новый архив содержал обновлённую версию
-:: (файл уже распакован поверх)
-
-:: Удаляем временные файлы
-if exist "{zip_path}" del "{zip_path}"
-if exist "{target_dir}\\update_pending.flag" del "{target_dir}\\update_pending.flag"
-
-:: Удаляем сам update.bat
+:: Удаляем update.bat
 del "%~f0"
 
 :: Запускаем приложение
@@ -284,15 +358,16 @@ exit /b 0
         with open(update_bat_path, "w", encoding="utf-8") as f:
             f.write(bat_content)
 
-        # Создаём флаг pending-обновления (для информирования UI)
+        # Создаём флаг pending-обновления
         with open(PENDING_FLAG, "w", encoding="utf-8") as f:
             f.write("ready")
 
         logger.info(f"update.bat создан: {update_bat_path}")
+        logger.info(f"apply_update.py создан: {apply_script}")
         return True
 
     except IOError as e:
-        logger.error(f"Ошибка создания update.bat: {e}")
+        logger.error(f"Ошибка создания скриптов обновления: {e}")
         return False
 
 
