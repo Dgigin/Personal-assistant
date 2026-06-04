@@ -58,7 +58,7 @@ f:/excel_converter/
 │       └── json_utils.py   # JSON load/save
 │
 ├── templates/
-│   └── index.html          # Весь фронтенд (SPA, ~2660 строк)
+│   └── index.html          # Весь фронтенд (SPA, ~3900 строк)
 │
 ├── uploads/                # Временные файлы (автоочистка 30 мин)
 ├── flask_session/          # Файлы сессий Flask-Session (очистка >7 дней каждые 6ч)
@@ -82,6 +82,8 @@ f:/excel_converter/
 | Планировщик | APScheduler (очистка uploads 30 мин, сессий 6ч, архивация задач 5 мин) |
 | Аутентификация | Flask session + куки (сервер-сайд, Flask-Session) |
 | Rate limiting | Flask-Limiter (5/min на /api/login) |
+| Автообновление | GitHub Releases API + `src/updater.py` (проверка раз в 6ч, скачивание ZIP, update.bat) |
+| Установщик | Inno Setup (`installer.iss`, сборка .exe) |
 
 ---
 

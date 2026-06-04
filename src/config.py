@@ -12,14 +12,23 @@ load_dotenv()
 class Config:
     """Основные настройки приложения."""
 
-    # Корневая директория проекта
+    # Корневая директория проекта (где лежат app.py, templates/, src/)
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    # Директория для пользовательских данных (логги, загрузки, сессии).
+    # При установке через инсталлятор в Program Files использует %APPDATA%,
+    # для портативной версии (запуск из папки проекта) — ту же папку.
+    _is_in_program_files = 'PROGRAMFILES' in os.environ and 'Program Files' in BASE_DIR
+    if _is_in_program_files:
+        USER_DATA_DIR = os.path.join(os.environ.get('APPDATA', BASE_DIR), 'Excel Converter')
+    else:
+        USER_DATA_DIR = BASE_DIR
 
     # Директории
     PROFILES_DIR = os.path.join(BASE_DIR, 'profiles')
     CONFIG_DIR = os.path.join(BASE_DIR, 'config')
-    UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')
-    LOG_DIR = os.path.join(BASE_DIR, 'logs')
+    UPLOAD_DIR = os.path.join(USER_DATA_DIR, 'uploads')
+    LOG_DIR = os.path.join(USER_DATA_DIR, 'logs')
 
     # Пути к файлам (для health-check и моделей)
     TASKS_PATH = os.path.join(CONFIG_DIR, 'tasks.json')

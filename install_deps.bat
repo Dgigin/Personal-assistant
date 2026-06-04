@@ -20,6 +20,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
+:: Создаём .env из .env.example, если его нет
+if not exist "%~dp0.env" (
+    echo [*] Создание .env из .env.example...
+    copy "%~dp0.env.example" "%~dp0.env" > nul
+    echo [OK] .env создан с гостевыми данными (guest/guest)
+)
+
 :: Обновляем pip
 echo [*] Обновление pip...
 python -m pip install --upgrade pip
@@ -29,7 +36,7 @@ echo.
 echo [*] Установка зависимостей из requirements.txt...
 echo.
 
-pip install -r "%~dp0requirements.txt"
+pip install --user -r "%~dp0requirements.txt"
 
 if errorlevel 1 (
     echo.
