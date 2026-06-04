@@ -1,6 +1,6 @@
 # Проект `excel_converter` — Единый план и документация
 
-> **Дата последнего обновления:** 2026-06-04 (v10)
+> **Дата последнего обновления:** 2026-06-04 (v11)
 > **Единый файл,** заменивший: `architecture_analysis.md`, `audit_report.md`, `improvements_plan.md`, `security_audit_report.md`, `vision_integration_plan.md`, `fix_implementation_plan.md`, `new_features_plan.md`
 
 ---
@@ -14,6 +14,7 @@ f:/excel_converter/
 ├── requirements.txt        # Зависимости
 ├── version.json            # Версия приложения + репозиторий GitHub
 ├── run.bat                 # Запуск с автоустановкой зависимостей + очистка stale update.bat (v1.0.5)
+├── create_release.py       # Скрипт создания GitHub Release и загрузки ассетов
 ├── install_deps.bat        # Установка Python-зависимостей
 ├── setup_env.py            # Генератор .env с уникальным SECRET_KEY (v1.0.3)
 ├── installer.iss           # Inno Setup скрипт для сборки установщика
@@ -37,7 +38,7 @@ f:/excel_converter/
 │   ├── auth.py             # Сессионная аутентификация (check_session)
 │   ├── types.py            # TypedDict для структур данных (PivotResult, FilterDef...)
 │   ├── scheduler.py        # APScheduler — очистка uploads, сессий, архивация задач
-│   ├── updater.py          # Проверка/скачивание/установка обновлений через GitHub Releases (v1.0.4: fix — zipfile вместо tar/PowerShell)
+│   ├── updater.py          # Проверка/скачивание/установка обновлений через GitHub Releases (v1.0.4: zipfile вместо tar/PowerShell; v1.0.6: убран del "%~f0")
 │   ├── models/
 │   │   ├── tasks.py        # Модель задач (load/save/archive)
 │   │   ├── chat_db.py      # SQLite для чатов
@@ -997,11 +998,19 @@ POST /api/constructor/detect_headers
   logging.getLogger('werkzeug').setLevel(logging.WARNING)
   ```
 
+**Решение (v1.0.6):**
+- Из [`update.bat`](src/updater.py:337) убрана строка `del "%~f0"` — Windows не может удалить запущенный batch-файл, что вызывало ошибку `"The batch file cannot be found. Not enough memory resources..."`. Теперь очистка stale `update.bat` полностью возложена на [`run.bat`](run.bat) при следующем запуске.
+- В [`app.py`](app.py:77) уровень логгера Werkzeug повышен с `WARNING` до `ERROR`, чтобы подавить сообщение `"WARNING: This is a development server"` (логируется на `INFO`):
+  ```python
+  logging.getLogger('werkzeug').setLevel(logging.ERROR)
+  ```
+
 **Выпущенные релизы:**
 | Версия | Дата | Ссылка |
 |--------|------|--------|
 | v1.0.4 | 04.06.2026 | https://github.com/Dgigin/Personal-assistant/releases/tag/v1.0.4 |
 | v1.0.5 | 04.06.2026 | https://github.com/Dgigin/Personal-assistant/releases/tag/v1.0.5 |
+| v1.0.6 | 04.06.2026 | https://github.com/Dgigin/Personal-assistant/releases/tag/v1.0.6 |
 
 ### 32. 📦 Итоговый список файлов (04.06.2026)
 
