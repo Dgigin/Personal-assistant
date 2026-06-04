@@ -9,6 +9,11 @@ echo.
 :: Переходим в директорию скрипта
 cd /d "%~dp0"
 
+:: Удаляем мусор от предыдущих неудачных обновлений
+if exist "%~dp0update.bat" del "%~dp0update.bat" >nul 2>&1
+if exist "%~dp0apply_update.py" del "%~dp0apply_update.py" >nul 2>&1
+if exist "%~dp0update_pending.flag" del "%~dp0update_pending.flag" >nul 2>&1
+
 :: Проверяем наличие Python
 python --version >nul 2>&1
 if errorlevel 1 (

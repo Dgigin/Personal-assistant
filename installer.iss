@@ -11,7 +11,7 @@
 ;   "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
 
 #define MyAppName "Excel Converter"
-#define MyAppVersion "1.0.4"
+#define MyAppVersion "1.0.5"
 #define MyAppPublisher "Dgigin"
 #define MyAppURL "https://github.com/Dgigin/Personal-assistant"
 #define MyAppExeName "run.bat"
