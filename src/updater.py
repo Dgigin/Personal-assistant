@@ -221,18 +221,23 @@ def download_update(download_url: str, progress_callback=None) -> Optional[str]:
         return None
 
 
-def _create_apply_script(project_root: str) -> str:
+def _create_apply_script(project_root: str, python_cmd: str = "", app_path: str = "") -> str:
     """
     Создаёт apply_update.py — скрипт для распаковки обновления через Python zipfile.
+    После распаковки запускает app.py через subprocess.Popen.
     Возвращает путь к созданному скрипту.
     """
     script_path = os.path.join(project_root, "apply_update.py")
-    script_content = '''# -*- coding: utf-8 -*-
-"""Автоматически создан модулем updater.py — распаковка обновления."""
+    python = python_cmd or "python"
+    app = app_path or os.path.join(project_root, "app.py")
+
+    script_content = f'''# -*- coding: utf-8 -*-
+"""Автоматически создан модулем updater.py — распаковка обновления и запуск приложения."""
 import zipfile
 import os
 import shutil
 import sys
+import subprocess
 
 
 def main():
@@ -242,6 +247,16 @@ def main():
 
     zip_path = sys.argv[1]
     target_dir = sys.argv[2]
+
+    # Нейтрализуем update.bat: Windows не может удалить запущенный batch-файл
+    # Перезаписываем его пустым содержимым, чтобы избежать ошибки
+    # "The batch file cannot be found" от del "%~f0" в старых версиях update.bat
+    update_bat_path = os.path.join(target_dir, "update.bat")
+    try:
+        with open(update_bat_path, "w") as f:
+            f.write("@exit /b 0\\r\\n")
+    except OSError:
+        pass
 
     if not os.path.exists(zip_path):
         print(f"[!] Архив не найден: {zip_path}")
@@ -303,7 +318,24 @@ def main():
     except OSError:
         pass
 
+    # Удаляем update.bat окончательно (на случай, если перезапись его не очистила)
+    if os.path.exists(update_bat_path):
+        try:
+            os.remove(update_bat_path)
+        except OSError:
+            pass
+
     print("[OK] Обновление установлено")
+
+    # Запускаем приложение через subprocess (надёжнее, чем start в batch)
+    python_exe = "{python}"
+    app_script = "{app}"
+    print("Запуск приложения...")
+    try:
+        subprocess.Popen([python_exe, app_script])
+    except OSError as e:
+        print(f"[!] Ошибка запуска приложения: {{e}}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
@@ -318,6 +350,7 @@ def install_update(zip_path: str) -> bool:
     """
     Устанавливает обновление: создаёт apply_update.py и update.bat,
     которые после рестарта распаковывают архив поверх текущей директории.
+    apply_update.py сам нейтрализует старый update.bat и запускает app.py.
     Возвращает True, если подготовка к обновлению прошла успешно.
     """
     try:
@@ -328,10 +361,11 @@ def install_update(zip_path: str) -> bool:
         python_cmd = sys.executable or "python"
         app_path = os.path.join(project_root, "app.py")
 
-        # Создаём apply_update.py для распаковки
-        apply_script = _create_apply_script(project_root)
+        # Создаём apply_update.py (передаём python_cmd и app_path для запуска после распаковки)
+        apply_script = _create_apply_script(project_root, python_cmd, app_path)
 
-        # Создаём update.bat (только запуск apply_update.py + перезапуск)
+        # Создаём update.bat — только запуск apply_update.py.
+        # Вся логика (удаление update.bat, запуск app.py) — в apply_update.py.
         update_bat_path = os.path.join(project_root, "update.bat")
 
         bat_content = f"""@echo off
@@ -342,15 +376,9 @@ echo.
 :: Ждём 3 секунды, чтобы сервер успел остановиться
 ping 127.0.0.1 -n 4 > nul
 
-:: Распаковываем обновление через Python (надёжнее, чем tar/PowerShell)
+:: Распаковываем обновление через Python
 echo Распаковка обновления...
 "{python_cmd}" "{apply_script}" "{zip_path}" "{target_dir}"
-
-:: update.bat удалится при следующем запуске run.bat (очистка stale-файлов)
-
-:: Запускаем приложение
-echo Запуск приложения...
-start "" "{python_cmd}" "{app_path}"
 
 exit /b 0
 """
