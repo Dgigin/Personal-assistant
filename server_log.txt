@@ -40,3 +40,9 @@
 2026-06-04 16:35:09 [INFO] apscheduler.executors.default: Running job "Архивация выполненных задач (trigger: interval[0:05:00], next run at: 2026-06-04 16:40:09 MSK)" (scheduled at 2026-06-04 16:35:09.122213+03:00)
 2026-06-04 16:35:09 [INFO] apscheduler.executors.default: Job "Очистка старых загруженных файлов (trigger: interval[0:30:00], next run at: 2026-06-04 17:05:09 MSK)" executed successfully
 2026-06-04 16:35:09 [INFO] apscheduler.executors.default: Job "Архивация выполненных задач (trigger: interval[0:05:00], next run at: 2026-06-04 16:40:09 MSK)" executed successfully
+2026-06-04 16:40:09 [INFO] apscheduler.executors.default: Running job "Архивация выполненных задач (trigger: interval[0:05:00], next run at: 2026-06-04 16:45:09 MSK)" (scheduled at 2026-06-04 16:40:09.122213+03:00)
+2026-06-04 16:40:09 [INFO] apscheduler.executors.default: Job "Архивация выполненных задач (trigger: interval[0:05:00], next run at: 2026-06-04 16:45:09 MSK)" executed successfully
+2026-06-04 16:45:09 [INFO] apscheduler.executors.default: Running job "Архивация выполненных задач (trigger: interval[0:05:00], next run at: 2026-06-04 16:50:09 MSK)" (scheduled at 2026-06-04 16:45:09.122213+03:00)
+2026-06-04 16:45:09 [INFO] apscheduler.executors.default: Job "Архивация выполненных задач (trigger: interval[0:05:00], next run at: 2026-06-04 16:50:09 MSK)" executed successfully
+2026-06-04 16:50:09 [INFO] apscheduler.executors.default: Running job "Архивация выполненных задач (trigger: interval[0:05:00], next run at: 2026-06-04 16:55:09 MSK)" (scheduled at 2026-06-04 16:50:09.122213+03:00)
+2026-06-04 16:50:09 [INFO] apscheduler.executors.default: Job "Архивация выполненных задач (trigger: interval[0:05:00], next run at: 2026-06-04 16:55:09 MSK)" executed successfully

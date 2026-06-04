@@ -20,7 +20,7 @@ task_bp = Blueprint('tasks', __name__)
 
 
 def _get_config_dir():
-    return os.path.join(Config.BASE_DIR, 'config')
+    return Config.CONFIG_DIR
 
 
 @task_bp.route('/api/tasks', methods=['GET'])

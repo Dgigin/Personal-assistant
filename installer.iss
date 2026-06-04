@@ -11,7 +11,7 @@
 ;   "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
 
 #define MyAppName "Excel Converter"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "zhizhin"
 #define MyAppURL "https://github.com/zhizhin/excel_converter"
 #define MyAppExeName "run.bat"
@@ -58,6 +58,9 @@ Name: "{userappdata}\Excel Converter\logs"
 Name: "{userappdata}\Excel Converter\uploads"
 Name: "{userappdata}\Excel Converter\flask_session"
 Name: "{userappdata}\Excel Converter\temp\update"
+Name: "{userappdata}\Excel Converter\config"
+Name: "{userappdata}\Excel Converter\config\constructor_scenarios"
+Name: "{userappdata}\Excel Converter\profiles"
 
 [Files]
 ; Корневые файлы
@@ -79,12 +82,6 @@ Source: "src\utils\*.py"; DestDir: "{app}\src\utils"; Flags: ignoreversion recur
 
 ; Папка templates
 Source: "templates\*"; DestDir: "{app}\templates"; Flags: ignoreversion recursesubdirs
-
-; Папка config (с сохранением пользовательских файлов)
-Source: "config\*.json"; DestDir: "{app}\config"; Flags: ignoreversion recursesubdirs
-
-; Папка profiles
-Source: "profiles\*.json"; DestDir: "{app}\profiles"; Flags: ignoreversion recursesubdirs
 
 ; Папка plans (документация)
 Source: "plans\*.md"; DestDir: "{app}\plans"; Flags: ignoreversion recursesubdirs

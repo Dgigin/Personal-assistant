@@ -25,8 +25,8 @@ class Config:
         USER_DATA_DIR = BASE_DIR
 
     # Директории
-    PROFILES_DIR = os.path.join(BASE_DIR, 'profiles')
-    CONFIG_DIR = os.path.join(BASE_DIR, 'config')
+    PROFILES_DIR = os.path.join(USER_DATA_DIR, 'profiles')
+    CONFIG_DIR = os.path.join(USER_DATA_DIR, 'config')
     UPLOAD_DIR = os.path.join(USER_DATA_DIR, 'uploads')
     LOG_DIR = os.path.join(USER_DATA_DIR, 'logs')
 

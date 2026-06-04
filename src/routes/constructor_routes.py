@@ -99,7 +99,7 @@ constructor_bp = Blueprint('constructor', __name__)
 # Persist-хранилище для загруженных файлов (file_id -> info)
 # Хранится в config/constructor_temp_files.json, восстанавливается при старте
 # ---------------------------------------------------------------------------
-TEMP_FILES_JSON = os.path.join(Config.BASE_DIR, 'config', 'constructor_temp_files.json')
+TEMP_FILES_JSON = os.path.join(Config.CONFIG_DIR, 'constructor_temp_files.json')
 
 
 def _load_temp_files() -> dict:
@@ -141,7 +141,17 @@ def _save_temp_files(temp_files: dict) -> None:
 
 
 def _cfg(*parts):
-    """Вспомогательная функция: возвращает путь от Config.BASE_DIR."""
+    """Вспомогательная функция: возвращает путь к поддиректориям."""
+    if not parts:
+        return Config.USER_DATA_DIR
+    first = parts[0]
+    rest = parts[1:]
+    if first == 'config':
+        return os.path.join(Config.CONFIG_DIR, *rest)
+    elif first == 'profiles':
+        return os.path.join(Config.PROFILES_DIR, *rest)
+    elif first == 'uploads':
+        return os.path.join(Config.UPLOAD_DIR, *rest)
     return os.path.join(Config.BASE_DIR, *parts)
 
 

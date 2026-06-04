@@ -34,11 +34,11 @@ chat_bp = Blueprint('chat', __name__)
 
 
 def _get_config_dir():
-    return os.path.join(Config.BASE_DIR, 'config')
+    return Config.CONFIG_DIR
 
 
 def _get_upload_dir():
-    return os.path.join(Config.BASE_DIR, 'uploads')
+    return Config.UPLOAD_DIR
 
 
 # ==================== ЗАГРУЗКА ФАЙЛОВ ====================
