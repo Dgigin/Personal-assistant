@@ -1,0 +1,39 @@
+# Environment
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Uploads & Temp files
+uploads/
+*.xlsx
+*.xls
+*.csv
+
+# Database
+config/chat_history.db
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Old backups (to be removed)
+save_app.py
+templates/save_index.html
+Структура.txt
+models.py

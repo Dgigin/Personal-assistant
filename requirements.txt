@@ -1,0 +1,10 @@
+flask>=3.0
+pandas>=2.0
+openpyxl>=3.1
+requests>=2.31
+python-dotenv>=1.0
+waitress>=3.0
+easyocr>=1.7
+apscheduler>=3.10
+flask-session>=0.8
+flask-limiter>=3.7
