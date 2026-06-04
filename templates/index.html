@@ -309,6 +309,139 @@
         body.login-shown #appContent {
             display: none !important;
         }
+
+        /* ========== UPDATE UI ========== */
+        #updateBanner {
+            position: fixed;
+            bottom: 50px;
+            right: 20px;
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 12px;
+            padding: 16px 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 9995;
+            display: none;
+            max-width: 380px;
+            font-size: 14px;
+            animation: slideInUp 0.3s ease;
+        }
+        @keyframes slideInUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        #updateBanner .update-title {
+            font-weight: 700;
+            color: #856404;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #updateBanner .update-desc {
+            color: #6d5200;
+            margin-bottom: 12px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        #updateBanner .update-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        #updateBanner .update-actions button {
+            padding: 6px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.15s;
+        }
+        #updateBanner .btn-update-now {
+            background: #ff9800;
+            color: white;
+        }
+        #updateBanner .btn-update-now:hover {
+            background: #e68900;
+        }
+        #updateBanner .btn-update-later {
+            background: #f5f5f5;
+            color: #666;
+        }
+        #updateBanner .btn-update-later:hover {
+            background: #e0e0e0;
+        }
+        #updateBanner .btn-restart {
+            background: #4CAF50;
+            color: white;
+        }
+        #updateBanner .btn-restart:hover {
+            background: #388E3C;
+        }
+        #updateProgress {
+            margin-top: 10px;
+            display: none;
+        }
+        #updateProgress .progress-bar-bg {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        #updateProgress .progress-bar-fill {
+            height: 100%;
+            background: #4CAF50;
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        #updateProgress .progress-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        #versionIndicator {
+            position: fixed;
+            bottom: 10px;
+            right: 20px;
+            font-size: 11px;
+            color: #999;
+            z-index: 9994;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: color 0.2s;
+            user-select: none;
+        }
+        #versionIndicator:hover {
+            color: #666;
+        }
+        #versionIndicator .version-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #4CAF50;
+        }
+        #versionIndicator .version-dot.update-available {
+            background: #ff9800;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        #versionIndicator .version-dot.updating {
+            background: #2196F3;
+            animation: pulse 1s infinite;
+        }
+        #versionIndicator .version-dot.error {
+            background: #f44336;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
@@ -3858,7 +3991,198 @@
     loadDepartments();
     loadExpenseArticles();
     loadTasks();
+    // =================== UPDATE SYSTEM ===================
+    let _updateTimer = null;
+    let _updateDismissed = false;
+
+    function initUpdateSystem() {
+        // Периодическая проверка обновлений (раз в 6 часов)
+        checkForUpdates();
+        setInterval(checkForUpdates, 6 * 60 * 60 * 1000);
+    }
+
+    function checkForUpdates() {
+        fetch('/api/check_update')
+            .then(r => r.json())
+            .then(data => {
+                const indicator = document.getElementById('versionIndicator');
+                const dot = indicator ? indicator.querySelector('.version-dot') : null;
+
+                if (data.error) {
+                    if (dot) dot.className = 'version-dot error';
+                    if (indicator) indicator.title = 'Ошибка проверки обновлений';
+                    return;
+                }
+
+                const versionText = document.getElementById('versionText');
+                if (versionText) versionText.textContent = 'v' + data.current_version;
+
+                if (data.has_update && !_updateDismissed) {
+                    if (dot) dot.className = 'version-dot update-available';
+                    if (indicator) indicator.title = 'Доступно обновление v' + data.latest_version;
+                    showUpdateBanner(data);
+                } else {
+                    if (dot) dot.className = 'version-dot';
+                    if (indicator) indicator.title = 'Актуальная версия';
+                }
+            })
+            .catch(() => {
+                const dot = document.querySelector('.version-dot');
+                if (dot) dot.className = 'version-dot error';
+            });
+    }
+
+    function showUpdateBanner(data) {
+        const banner = document.getElementById('updateBanner');
+        if (!banner) return;
+
+        document.getElementById('updateTitle').textContent = '📦 Доступно обновление v' + data.latest_version;
+        document.getElementById('updateDesc').textContent =
+            data.changelog ? data.changelog.substring(0, 300) : 'Новая версия приложения готова к установке.';
+
+        const actions = document.getElementById('updateActions');
+        actions.innerHTML =
+            '<button class="btn-update-now" onclick="startUpdate()">Обновить</button>' +
+            '<button class="btn-update-later" onclick="dismissUpdate()">Позже</button>';
+
+        banner.style.display = 'block';
+    }
+
+    function dismissUpdate() {
+        _updateDismissed = true;
+        const banner = document.getElementById('updateBanner');
+        if (banner) banner.style.display = 'none';
+    }
+
+    function startUpdate() {
+        const banner = document.getElementById('updateBanner');
+        if (!banner) return;
+
+        const actions = document.getElementById('updateActions');
+        actions.innerHTML = '<span style="color:#856404;font-size:13px;">⏳ Скачивание обновления...</span>';
+
+        document.getElementById('updateProgress').style.display = 'block';
+        document.getElementById('progressFill').style.width = '0%';
+        document.getElementById('progressText').textContent = '0%';
+
+        // Запускаем обновление
+        fetch('/api/apply_update', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) {
+                    showUpdateError(data.message || 'Ошибка запуска обновления');
+                    return;
+                }
+                // Начинаем отслеживать прогресс
+                pollUpdateProgress();
+            })
+            .catch(err => {
+                showUpdateError('Ошибка соединения: ' + err.message);
+            });
+    }
+
+    function pollUpdateProgress() {
+        if (_updateTimer) clearInterval(_updateTimer);
+
+        _updateTimer = setInterval(() => {
+            fetch('/api/check_update/status')
+                .then(r => r.json())
+                .then(state => {
+                    const progressFill = document.getElementById('progressFill');
+                    const progressText = document.getElementById('progressText');
+                    const actions = document.getElementById('updateActions');
+
+                    if (state.status === 'downloading') {
+                        const pct = state.total > 0
+                            ? Math.round((state.progress / state.total) * 100)
+                            : 0;
+                        if (progressFill) progressFill.style.width = pct + '%';
+                        if (progressText) progressText.textContent = 'Скачано ' + formatBytes(state.progress) + ' из ' + formatBytes(state.total) + ' (' + pct + '%)';
+                    } else if (state.status === 'ready') {
+                        if (progressFill) progressFill.style.width = '100%';
+                        if (progressText) progressText.textContent = '✅ Обновление готово к установке';
+                        actions.innerHTML = '<button class="btn-restart" onclick="restartForUpdate()">🔄 Перезапустить сейчас</button>';
+                        clearInterval(_updateTimer);
+                        _updateTimer = null;
+                    } else if (state.status === 'error') {
+                        showUpdateError(state.error || 'Неизвестная ошибка');
+                        clearInterval(_updateTimer);
+                        _updateTimer = null;
+                    }
+                })
+                .catch(() => {
+                    // Сервер может перезапускаться — игнорируем временные ошибки
+                });
+        }, 1000);
+    }
+
+    function showUpdateError(msg) {
+        const progressText = document.getElementById('progressText');
+        const actions = document.getElementById('updateActions');
+        if (progressText) progressText.textContent = '❌ ' + msg;
+        if (progressText) progressText.style.color = '#d32f2f';
+        actions.innerHTML = '<button class="btn-update-later" onclick="dismissUpdate()">Закрыть</button>';
+        const dot = document.querySelector('.version-dot');
+        if (dot) dot.className = 'version-dot error';
+        if (_updateTimer) {
+            clearInterval(_updateTimer);
+            _updateTimer = null;
+        }
+    }
+
+    function restartForUpdate() {
+        const actions = document.getElementById('updateActions');
+        actions.innerHTML = '<span style="color:#2e7d32;font-size:13px;">🔄 Перезапуск...</span>';
+        const progressText = document.getElementById('progressText');
+        if (progressText) progressText.textContent = 'Сервер перезапускается...';
+
+        fetch('/api/apply_update/restart', { method: 'POST' })
+            .then(() => {
+                // После рестарта сервера пробуем переподключиться
+                setTimeout(() => {
+                    window.location.reload();
+                }, 5000);
+            })
+            .catch(() => {
+                // Сервер упадёт — это нормально. Перезагружаем страницу.
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+            });
+    }
+
+    function formatBytes(bytes) {
+        if (bytes === 0) return '0 Б';
+        const k = 1024;
+        const sizes = ['Б', 'КБ', 'МБ', 'ГБ'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    // Запускаем систему обновлений после загрузки страницы
+    initUpdateSystem();
+
 </script>
+<!-- ==================== UPDATE UI ==================== -->
+<div id="updateBanner">
+    <div class="update-title" id="updateTitle">📦 Доступно обновление</div>
+    <div class="update-desc" id="updateDesc"></div>
+    <div class="update-actions" id="updateActions">
+        <button class="btn-update-now" onclick="startUpdate()">Обновить</button>
+        <button class="btn-update-later" onclick="dismissUpdate()">Позже</button>
+    </div>
+    <div id="updateProgress">
+        <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText"></div>
+    </div>
+</div>
+
+<div id="versionIndicator" title="Версия приложения">
+    <span class="version-dot"></span>
+    <span id="versionText">v1.0.0</span>
+</div>
 </div><!-- /appContent -->
 </body>
 </html>

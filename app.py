@@ -27,6 +27,8 @@ from src.routes.converter_routes import converter_bp
 from src.routes.task_routes import task_bp
 from src.routes.chat_routes import chat_bp
 from src.routes.constructor_routes import constructor_bp
+from src.routes.update_routes import update_bp
+from src.updater import check_pending_update
 import time
 from src.auth import is_auth_enabled, login_user, logout_user, check_session, unauthorized_response
 
@@ -116,11 +118,15 @@ def create_app() -> Flask:
     # требуется повторная авторизация
     cleanup_session_files_at_startup(SESSION_DIR)
 
+    # Проверяем наличие незавершённого обновления при запуске
+    check_pending_update()
+
     # Регистрируем Blueprint'ы
     app.register_blueprint(converter_bp)
     app.register_blueprint(task_bp)
     app.register_blueprint(chat_bp)
     app.register_blueprint(constructor_bp)
+    app.register_blueprint(update_bp)
 
     # -----------------------------------------------------------------------
     # Аутентификация (сессионная)
@@ -198,7 +204,9 @@ def create_app() -> Flask:
 
         # Пропускаем маршруты, не требующие аутентификации
         if request.path in ('/', '/api/auth_status', '/api/login', '/api/logout',
-                            '/api/chat/status', '/api/chat/toggle'):
+                            '/api/chat/status', '/api/chat/toggle',
+                            '/api/check_update', '/api/check_update/status',
+                            '/api/apply_update', '/api/apply_update/restart'):
             return None
 
         # Проверяем сессию (автоматически обновляет last_activity)
@@ -233,7 +241,9 @@ def create_app() -> Flask:
             # Не обновляем для исключённых из аутентификации маршрутов,
             # чтобы фоновый поллинг не сбрасывал таймер неактивности
             if request.path not in ('/', '/api/auth_status', '/api/login', '/api/logout',
-                                    '/api/chat/status', '/api/chat/toggle'):
+                                    '/api/chat/status', '/api/chat/toggle',
+                                    '/api/check_update', '/api/check_update/status',
+                                    '/api/apply_update', '/api/apply_update/restart'):
                 session['last_activity'] = time.time()
         return response
 

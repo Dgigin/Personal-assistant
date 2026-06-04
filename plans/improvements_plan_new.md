@@ -1,6 +1,6 @@
 # Проект `excel_converter` — Единый план и документация
 
-> **Дата последнего обновления:** 2026-06-04 (v6)
+> **Дата последнего обновления:** 2026-06-04 (v7)
 > **Единый файл,** заменивший: `architecture_analysis.md`, `audit_report.md`, `improvements_plan.md`, `security_audit_report.md`, `vision_integration_plan.md`, `fix_implementation_plan.md`, `new_features_plan.md`
 
 ---
@@ -12,6 +12,10 @@ f:/excel_converter/
 ├── app.py                  # Точка входа, Flask-фабрика, create_app()
 ├── wsgi.py                 # Точка входа для Waitress (production)
 ├── requirements.txt        # Зависимости
+├── version.json            # Версия приложения + репозиторий GitHub
+├── run.bat                 # Запуск с автоустановкой зависимостей
+├── install_deps.bat        # Установка Python-зависимостей
+├── installer.iss           # Inno Setup скрипт для сборки установщика
 ├── .env                    # SECRET_KEY, AUTH_* , DEEPSEEK_API_KEY
 ├── .gitignore
 │
@@ -31,6 +35,7 @@ f:/excel_converter/
 │   ├── auth.py             # Сессионная аутентификация (check_session)
 │   ├── types.py            # TypedDict для структур данных (PivotResult, FilterDef...)
 │   ├── scheduler.py        # APScheduler — очистка uploads, сессий, архивация задач
+│   ├── updater.py          # Проверка/скачивание/установка обновлений через GitHub Releases
 │   ├── models/
 │   │   ├── tasks.py        # Модель задач (load/save/archive)
 │   │   ├── chat_db.py      # SQLite для чатов
@@ -41,7 +46,8 @@ f:/excel_converter/
 │   │   ├── converter_routes.py     # Конвертация Excel
 │   │   ├── task_routes.py          # REST API задач
 │   │   ├── constructor_routes.py   # API конструктора сводных таблиц
-│   │   └── chat_routes.py          # DeepSeek чат
+│   │   ├── chat_routes.py          # DeepSeek чат
+│   │   └── update_routes.py        # API проверки и применения обновлений
 │   ├── services/
 │   │   ├── converter.py        # Логика конвертации Excel
 │   │   ├── constructor.py      # Логика конструктора (pivot, фильтры, сценарии)
@@ -910,6 +916,74 @@ POST /api/constructor/detect_headers
 - Добавлен элемент `#activeTaskCounter` под строкой добавления задачи
 - Отображает: `📋 Всего: 5 | ✅ Выполнено: 2 | ⏳ Осталось: 3`
 - Автоматически обновляется в [`renderTaskList()`](templates/index.html:1736) при каждой загрузке задач
+
+### 29. ✨ Автообновление через GitHub Releases (04.06.2026)
+
+**Задача:** Добавить механизм автоматической проверки и установки обновлений через GitHub Releases.
+
+**Созданные файлы:**
+- [`version.json`](version.json) — файл с текущей версией `1.0.0` и именем репозитория `zhizhin/excel_converter`
+- [`src/updater.py`](src/updater.py:1) — модуль с функциями:
+  - `get_current_version()` — читает версию из `version.json`
+  - `check_for_update()` — GET к `https://api.github.com/repos/{repo}/releases/latest`, сравнивает версии
+  - `download_update(url, progress_callback)` — скачивает ZIP во временную папку с callback прогресса
+  - `install_update(zip_path)` — создаёт `update.bat`, который через 3 сек распаковывает архив и перезапускает сервер
+  - `check_pending_update()` — очищает мусор от прерванных обновлений при старте
+- [`src/routes/update_routes.py`](src/routes/update_routes.py:1) — 4 эндпоинта:
+  - `GET /api/check_update` — проверка наличия обновления
+  - `GET /api/check_update/status` — статус текущего процесса (прогресс скачивания)
+  - `POST /api/apply_update` — запуск скачивания и подготовки обновления
+  - `POST /api/apply_update/restart` — запуск `update.bat` и перезапуск сервера
+
+**Изменённые файлы:**
+- [`app.py`](app.py:29) — импорт `update_bp`, регистрация blueprint, вызов `check_pending_update()` при старте, добавление эндпоинтов обновлений в исключения аутентификации (чтобы проверка работала без логина)
+- [`templates/index.html`](templates/index.html) — добавлены:
+  - CSS-стили для `#updateBanner` (жёлтый баннер с тенью, анимация `slideInUp`), `#versionIndicator` (правый нижний угол), прогресс-бар
+  - HTML: `#updateBanner` с заголовком, описанием, кнопками и прогресс-баром; `#versionIndicator` с цветной точкой и текстом версии
+  - JS-функции: `initUpdateSystem()`, `checkForUpdates()` (периодическая проверка раз в 6 часов), `showUpdateBanner()`, `startUpdate()`, `pollUpdateProgress()` (опрос статуса каждую секунду), `restartForUpdate()`, `formatBytes()`
+
+**Принцип работы:**
+1. При загрузке страницы — `initUpdateSystem()` вызывает `checkForUpdates()`
+2. Если на GitHub есть новый релиз — показывается жёлтый баннер с кнопкой "Обновить"
+3. При клике — `POST /api/apply_update` → скачивание ZIP (прогресс отображается в реальном времени)
+4. После скачивания — кнопка "🔄 Перезапустить сейчас"
+5. `update.bat` ждёт 3 сек, распаковывает архив поверх текущей директории, удаляет временные файлы и запускает `python app.py`
+
+### 30. ✨ Установщик (Inno Setup) (04.06.2026)
+
+**Задача:** Создать скрипт Inno Setup для сборки установщика Windows.
+
+**Созданные файлы:**
+- [`installer.iss`](installer.iss:1) — скрипт Inno Setup:
+  - Устанавливает в `%ProgramFiles%\ExcelConverter`
+  - Ярлыки: меню Пуск, рабочий стол (опционально)
+  - Упаковка: `app.py`, `wsgi.py`, `requirements.txt`, `version.json`, `README.md`, `.env` (если нет), все `src/*.py`, `templates/*`, `config/*.json`, `profiles/*.json`
+  - После установки: запускает `install_deps.bat` (pip install -r requirements.txt)
+  - Проверка наличия Python при старте установщика
+
+- [`run.bat`](run.bat:1) — запуск приложения с автоустановкой зависимостей
+- [`install_deps.bat`](install_deps.bat:1) — установка Python-зависимостей
+
+**Сборка установщика:**
+```
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+```
+Готовый файл: `Output/ExcelConverter-Setup-1.0.0.exe`
+
+### 31. 📦 Итоговый список новых файлов (04.06.2026)
+
+```
+f:/excel_converter/
+├── version.json              # Версия приложения + репозиторий GitHub
+├── run.bat                   # Запуск с автоустановкой зависимостей
+├── install_deps.bat          # Установка зависимостей
+├── installer.iss             # Inno Setup скрипт
+├── update.bat                # (создаётся динамически при обновлении)
+├── src/
+│   ├── updater.py            # Модуль проверки/скачивания/установки обновлений
+│   └── routes/
+│       └── update_routes.py  # API-эндпоинты обновлений
+```
 
 ---
 

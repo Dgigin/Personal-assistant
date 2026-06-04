@@ -879,3 +879,22 @@ FileNotFoundError: [WinError 2] Не удается найти указанны�
 2026-06-04 15:36:35 [INFO] apscheduler.executors.default: Running job "Архивация выполненных задач (trigger: interval[0:05:00], next run at: 2026-06-04 15:41:35 MSK)" (scheduled at 2026-06-04 15:36:35.753197+03:00)
 2026-06-04 15:36:35 [INFO] apscheduler.executors.default: Job "Архивация выполненных задач (trigger: interval[0:05:00], next run at: 2026-06-04 15:41:35 MSK)" executed successfully
 2026-06-04 15:40:40 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-06-04 16:03:46 [INFO] src.scheduler: Очищены файлы сессий при старте приложения
+2026-06-04 16:03:46 [INFO] __main__: Аутентификация включена
+2026-06-04 16:03:46 [INFO] apscheduler.scheduler: Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-04 16:03:46 [INFO] src.scheduler: Планировщик очистки uploads запущен: каждые 1800 сек
+2026-06-04 16:03:46 [INFO] apscheduler.scheduler: Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-04 16:03:46 [INFO] src.scheduler: Планировщик архивации задач запущен: каждые 300 сек
+2026-06-04 16:03:46 [INFO] apscheduler.scheduler: Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-04 16:03:46 [INFO] src.scheduler: Планировщик очистки сессий запущен: каждые 6 часов, удалять старше 7 дней
+2026-06-04 16:03:46 [INFO] apscheduler.scheduler: Added job "Очистка старых загруженных файлов" to job store "default"
+2026-06-04 16:03:46 [INFO] apscheduler.scheduler: Added job "Архивация выполненных задач" to job store "default"
+2026-06-04 16:03:46 [INFO] apscheduler.scheduler: Added job "Очистка устаревших файлов сессий" to job store "default"
+2026-06-04 16:03:46 [INFO] apscheduler.scheduler: Scheduler started
+2026-06-04 16:03:46 [INFO] __main__: Сервер запущен на http://localhost:5000
+2026-06-04 16:03:46 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-04 16:03:46 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-06-04 16:04:07 [INFO] werkzeug: 127.0.0.1 - - [04/Jun/2026 16:04:07] "[31m[1mGET /api/check_update HTTP/1.1[0m" 401 -
+2026-06-04 16:04:09 [INFO] werkzeug: 127.0.0.1 - - [04/Jun/2026 16:04:09] "GET /api/chat/status HTTP/1.1" 200 -
+2026-06-04 16:04:09 [INFO] werkzeug: 127.0.0.1 - - [04/Jun/2026 16:04:09] "GET /api/auth_status HTTP/1.1" 200 -
