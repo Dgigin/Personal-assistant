@@ -18,6 +18,7 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 
+from ..utils.file_utils import read_file_to_df
 from ..types import PivotResult, ApplyFiltersResult
 
 logger = logging.getLogger(__name__)
@@ -54,8 +55,8 @@ def _detect_header_row(file_path: str, sheet_name: str) -> Dict[str, Any]:
     :param sheet_name: Имя листа
     :return: {best_header_row, unnamed_ratio, rows_preview: [{row_index, values, n_non_null}, ...]}
     """
-    # Читаем первые 5 строк без заголовков
-    df_raw = pd.read_excel(file_path, sheet_name=sheet_name, header=None, nrows=6)
+    # Читаем первые 6 строк без заголовков (поддержка CSV через read_file_to_df)
+    df_raw = read_file_to_df(file_path, sheet_name=sheet_name, header=None, nrows=6)
 
     rows_preview = []
     best_row = 0
@@ -74,7 +75,7 @@ def _detect_header_row(file_path: str, sheet_name: str) -> Dict[str, Any]:
     # Пробуем разные header_row и считаем unnamed
     for header_row in range(min(4, len(df_raw))):
         try:
-            df_test = pd.read_excel(file_path, sheet_name=sheet_name, header=header_row, nrows=5)
+            df_test = read_file_to_df(file_path, sheet_name=sheet_name, header=header_row, nrows=5)
             cols = df_test.columns.tolist()
             unnamed_count = sum(1 for c in cols if 'Unnamed' in str(c))
             total = len(cols)
@@ -98,27 +99,45 @@ def _detect_header_row(file_path: str, sheet_name: str) -> Dict[str, Any]:
 
 def load_excel_file(file_path: str) -> Dict[str, Any]:
     """
-    Загружает Excel-файл и возвращает список листов с метаданными.
+    Загружает Excel (.xlsx/.xls) или CSV (.csv) файл и возвращает список листов с метаданными.
 
-    :param file_path: Путь к файлу .xlsx/.xls
+    Для CSV: возвращает один виртуальный лист с именем файла (без расширения).
+    Для Excel: читает все листы через pd.ExcelFile.
+
+    :param file_path: Путь к файлу
     :return: {sheets: [{name, rows, cols, suggested_header_row, needs_review}, ...]}
     """
-    xls = pd.ExcelFile(file_path)
+    ext = os.path.splitext(file_path)[1].lower()
     sheets = []
-    for sheet_name in xls.sheet_names:
-        df = pd.read_excel(file_path, sheet_name=sheet_name, nrows=0)
-        # Пробуем прочитать пару строк для оценки
-        df_sample = pd.read_excel(file_path, sheet_name=sheet_name, nrows=100)
-        # Автоопределение заголовков
+
+    if ext == '.csv':
+        # CSV — один виртуальный лист с именем файла
+        sheet_name = os.path.splitext(os.path.basename(file_path))[0]
+        df_sample = read_file_to_df(file_path, nrows=100)
+        cols = len(df_sample.columns)
         header_info = _detect_header_row(file_path, sheet_name)
         sheets.append({
             'name': sheet_name,
-            'rows': len(df_sample) + 100,  # приблизительно
-            'cols': len(df.columns),
-            'columns': df.columns.tolist(),
+            'rows': len(df_sample) + 100 if len(df_sample) == 100 else len(df_sample),
+            'cols': cols,
+            'columns': df_sample.columns.tolist(),
             'suggested_header_row': header_info['best_header_row'],
             'needs_review': header_info['needs_review'],
         })
+    else:
+        xls = pd.ExcelFile(file_path)
+        for sheet_name in xls.sheet_names:
+            df = read_file_to_df(file_path, sheet_name=sheet_name, nrows=0)
+            df_sample = read_file_to_df(file_path, sheet_name=sheet_name, nrows=100)
+            header_info = _detect_header_row(file_path, sheet_name)
+            sheets.append({
+                'name': sheet_name,
+                'rows': len(df_sample) + 100 if len(df_sample) == 100 else len(df_sample),
+                'cols': len(df.columns),
+                'columns': df.columns.tolist(),
+                'suggested_header_row': header_info['best_header_row'],
+                'needs_review': header_info['needs_review'],
+            })
     return {'sheets': sheets}
 
 
@@ -148,8 +167,9 @@ def load_sheet_data(
         header_row = header_info['best_header_row']
 
     if transpose:
-        # При транспонировании: читаем без заголовков, затем транспонируем
-        df_raw = pd.read_excel(file_path, sheet_name=sheet_name, header=None, dtype=str)
+        # При транспонировании: читаем первые limit+offset+1 строк без заголовков
+        nrows = limit + offset + 1
+        df_raw = read_file_to_df(file_path, sheet_name=sheet_name, header=None, dtype=str, nrows=nrows)
         df_raw = df_raw.fillna('').astype(str)
         df_t = df_raw.T.reset_index(drop=True)
         # Первая строка транспонированных данных становится заголовками
@@ -162,18 +182,19 @@ def load_sheet_data(
             df_t = df_t.iloc[1:].reset_index(drop=True)
         columns = df_t.columns.tolist()
         df = df_t
+        total_rows = len(df_raw) - 1  # минус строка-заголовок
     else:
         # Читаем meta с указанной строкой заголовков
-        df_meta = pd.read_excel(file_path, sheet_name=sheet_name, header=header_row, nrows=0)
+        df_meta = read_file_to_df(file_path, sheet_name=sheet_name, header=header_row, nrows=0)
         columns = df_meta.columns.tolist()
 
-        # Читаем данные с указанной строкой заголовков
-        df = pd.read_excel(file_path, sheet_name=sheet_name, header=header_row, dtype=str)
+        # ОПТИМИЗАЦИЯ: читаем только limit+offset строк вместо всего файла
+        nrows = limit + offset
+        df = read_file_to_df(file_path, sheet_name=sheet_name, header=header_row, dtype=str, nrows=nrows)
 
         # Заменяем NaN на пустую строку и приводим всё к строке
         df = df.fillna('').astype(str)
-
-    total_rows = len(df)
+        total_rows = len(df)
 
     # Применяем offset и limit
     if offset > 0:
@@ -244,9 +265,9 @@ def _infer_column_types(
     чтобы числа (в т.ч. Excel serial dates) не помечались как даты.
     """
     try:
-        df = pd.read_excel(file_path, sheet_name=sheet_name, header=header_row, nrows=1000, dtype=str)
+        df = read_file_to_df(file_path, sheet_name=sheet_name, header=header_row, nrows=1000, dtype=str)
     except Exception:
-        df = pd.read_excel(file_path, sheet_name=sheet_name, header=header_row, nrows=1000, dtype=str)
+        df = read_file_to_df(file_path, sheet_name=sheet_name, header=header_row, nrows=1000, dtype=str)
 
     # Регулярка для определения "похожести на дату":
     # значение содержит точки, слеши или дефисы между цифрами
@@ -504,7 +525,7 @@ def apply_filters(
     if cached_df is not None:
         df = cached_df.copy().astype(str)
     else:
-        df = pd.read_excel(file_path, sheet_name=sheet_name, header=header_row, dtype=str)
+        df = read_file_to_df(file_path, sheet_name=sheet_name, header=header_row, dtype=str)
     # Приводим всё к строке, чтобы избежать datetime объектов при JSON-сериализации
     df = df.fillna('').astype(str)
 
@@ -582,7 +603,7 @@ def build_pivot_table(
     if cached_df is not None:
         df = cached_df.copy().astype(str)
     else:
-        df = pd.read_excel(file_path, sheet_name=sheet_name, header=header_row, dtype=str)
+        df = read_file_to_df(file_path, sheet_name=sheet_name, header=header_row, dtype=str)
     # Приводим всё к строке, чтобы избежать datetime объектов при JSON-сериализации
     df = df.fillna('').astype(str)
 

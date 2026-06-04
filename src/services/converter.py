@@ -8,6 +8,8 @@ from typing import List, Dict, Any, Optional, Tuple
 
 import pandas as pd
 
+from ..utils.file_utils import read_file_to_df
+
 
 def transform_excel_with_mapping(
     input_path: str,
@@ -33,7 +35,7 @@ def transform_excel_with_mapping(
     if ignore_depts is None:
         ignore_depts = []
 
-    df_source = pd.read_excel(input_path, sheet_name=0, dtype=str)
+    df_source = read_file_to_df(input_path, sheet_name=0, dtype=str)
     departments = df_source.iloc[:, 0].tolist()
     data_columns = df_source.columns[1:]
 

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Утилиты для работы с файлами: безопасные имена, очистка загрузок, проверка расширений.
+Утилиты для работы с файлами: безопасные имена, очистка загрузок, проверка расширений,
+централизованное чтение CSV и Excel.
 """
 
 import os
@@ -111,3 +112,32 @@ def save_json_as_xlsx(data: List[Dict[str, Any]], filepath: str) -> str:
 
     wb.save(filepath)
     return filepath
+
+
+def read_file_to_df(file_path: str, sheet_name=None, **kwargs) -> "pd.DataFrame":
+    """
+    Централизованное чтение CSV (.csv) или Excel (.xlsx/.xls) в pandas DataFrame.
+
+    - Для CSV: автоматически определяет кодировку (utf-8 → cp1251).
+      Параметр sheet_name игнорируется (CSV не имеет листов).
+    - Для Excel: передаёт sheet_name в pd.read_excel().
+
+    :param file_path: Путь к файлу
+    :param sheet_name: Имя листа (только для Excel). По умолчанию 0 (первый лист).
+    :param kwargs: Дополнительные параметры, передаваемые в pd.read_csv() / pd.read_excel()
+    :return: pandas DataFrame
+    """
+    import pandas as pd
+
+    ext = os.path.splitext(file_path)[1].lower()
+
+    if ext == '.csv':
+        # Для CSV sheet_name не нужен, удаляем если передан
+        kwargs.pop('sheet_name', None)
+        try:
+            return pd.read_csv(file_path, encoding='utf-8', **kwargs)
+        except UnicodeDecodeError:
+            return pd.read_csv(file_path, encoding='cp1251', **kwargs)
+    else:
+        # Excel: .xlsx, .xls
+        return pd.read_excel(file_path, sheet_name=sheet_name or 0, **kwargs)
