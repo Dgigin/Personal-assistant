@@ -1,0 +1,12 @@
+{
+  "name": "ОБИТ",
+  "created_at": "2026-06-02T09:15:20.733490",
+  "mapping": [
+    {
+      "source_column": "ОБИТ",
+      "budget": "Услуги",
+      "target_article": "ОБИТ",
+      "default_period": 30
+    }
+  ]
+}
