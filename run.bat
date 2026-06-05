@@ -1,8 +1,8 @@
 @echo off
 chcp 65001 > nul
-title Excel Converter
+title Personal Assistant
 echo ============================================
-echo   Excel Converter - Запуск приложения
+echo   Personal Assistant - Запуск приложения
 echo ============================================
 echo.
 

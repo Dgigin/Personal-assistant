@@ -26,6 +26,7 @@ from ..services.constructor import (
     load_excel_file,
     load_sheet_data,
     _infer_column_types,
+    _infer_column_types_from_df,
     _detect_header_row,
     apply_filters,
     build_pivot_table,
@@ -36,7 +37,8 @@ from ..services.constructor import (
     delete_scenario,
     _ensure_scenarios_dir,
 )
-from ..utils.file_utils import safe_remove
+from ..utils.file_utils import safe_remove, read_file_to_df
+from ..utils import sqlite_cache
 
 logger = logging.getLogger(__name__)
 
@@ -227,11 +229,14 @@ def upload_excel():
 @constructor_bp.route('/api/constructor/load', methods=['POST'])
 def load_sheet():
     """
-    Загружает метаданные указанного листа.
+    Загружает метаданные указанного листа + сохраняет все данные в SQLite-кэш.
     Тело запроса: {file_id, sheet_name, header_row?, transpose?}
     header_row: номер строки с заголовками (0-based). None = автоопределение.
     transpose: если True — транспонировать данные.
     Возвращает: {columns, total_rows, dtypes, date_columns, header_row_used}
+
+    ОПТИМИЗАЦИЯ: читаем Excel ОДИН раз, пишем в SQLite и строим ответ из
+    того же DataFrame (раньше было два чтения — load_sheet_data + read_file_to_df).
     """
     data = request.get_json()
     file_id = data.get('file_id', '')
@@ -251,14 +256,60 @@ def load_sheet():
         return jsonify({'error': 'Файл не найден на диске. Загрузите заново.'}), 404
 
     try:
-        result = load_sheet_data(
-            file_path=file_path,
-            sheet_name=sheet_name,
-            limit=100,
-            offset=0,
-            header_row=header_row,
-            transpose=transpose,
-        )
+        # Автоопределение строки заголовков (читает только первые строки — быстро)
+        if header_row is None:
+            header_info = _detect_header_row(file_path, sheet_name)
+            header_row = header_info['best_header_row']
+
+        if transpose:
+            # Транспонирование — сложная логика, используем старый путь
+            result = load_sheet_data(
+                file_path=file_path, sheet_name=sheet_name,
+                limit=100, offset=0,
+                header_row=header_row, transpose=True,
+            )
+            return jsonify(result)
+
+        # ОПТИМИЗАЦИЯ: читаем все данные ОДИН раз
+        full_df = read_file_to_df(file_path, sheet_name=sheet_name, header=header_row, dtype=str)
+        full_df = full_df.fillna('').astype(str)
+
+        # Сохраняем в SQLite-кэш
+        try:
+            cache_id = file_info.get('sqlite_cache_id')
+            if not cache_id:
+                cache_id = sqlite_cache.create_cache()
+                file_info['sqlite_cache_id'] = cache_id
+                _save_temp_files(_temp_files)
+
+            sqlite_cache.save_dataframe(cache_id, full_df)
+            logger.debug(
+                "SQLite-кэш для file_id=%s: сохранено %d строк, cache_id=%s",
+                file_id, len(full_df), cache_id
+            )
+        except Exception as cache_e:
+            logger.warning("Не удалось создать SQLite-кэш для %s: %s", file_id, cache_e)
+
+        # Строим ответ из тех же данных (без повторного чтения файла)
+        columns = full_df.columns.tolist()
+        total_rows = len(full_df)
+
+        # Первые 100 строк для предпросмотра
+        preview_df = full_df.head(100)
+        data = preview_df.to_dict(orient='records')
+
+        # Определяем типы колонок по DataFrame (не читая файл заново)
+        dtypes = _infer_column_types_from_df(full_df, columns)
+        date_columns = [col for col, dtype in dtypes.items() if dtype == 'date']
+
+        result = {
+            'columns': columns,
+            'data': data,
+            'total_rows': total_rows,
+            'dtypes': dtypes,
+            'date_columns': date_columns,
+            'header_row_used': header_row,
+        }
         return jsonify(result)
     except Exception as e:
         logger.error('Ошибка загрузки листа: %s\n%s', e, traceback.format_exc())
@@ -326,6 +377,32 @@ def preview_data():
         return jsonify({'error': 'Файл не найден на диске'}), 404
 
     try:
+        cache_id = file_info.get('sqlite_cache_id')
+        if cache_id:
+            # Используем SQLite-кэш (быстрый путь)
+            try:
+                preview_data_sqlite, preview_columns, total_filtered = sqlite_cache.query_data(
+                    cache_id,
+                    selected_columns=selected_columns,
+                    filters=filters,
+                    sort_column=sort_column,
+                    sort_order=sort_order,
+                    limit=limit,
+                    offset=offset,
+                )
+                total_rows = sqlite_cache.get_row_count(cache_id)
+                result = {
+                    'columns': preview_columns,
+                    'data': preview_data_sqlite,
+                    'total_rows': total_rows,
+                    'filtered_count': total_filtered,
+                }
+                return jsonify(_sanitize_for_json(result))
+            except Exception as sqlite_e:
+                logger.warning("SQLite-кэш недоступен, падаем на Excel: %s", sqlite_e)
+                # Падаем через apply_filters ниже
+
+        # Резервный путь: читаем из Excel через apply_filters
         cached_df = file_info.get('cached_df')
         result = apply_filters(
             file_path, sheet_name,
@@ -368,6 +445,7 @@ def pivot_table():
     agg_functions = data.get('agg_functions', ['sum'])
     output_format = data.get('output_format', 'flat')
     filters = data.get('filters', None)
+    selected_columns = data.get('selected_columns', None)
     totals_mode = data.get('totals_mode', 'none')
 
     if not file_id or not sheet_name:
@@ -390,7 +468,18 @@ def pivot_table():
     header_row = int(data.get('header_row', 0))
 
     try:
+        # Пробуем использовать SQLite-кэш
+        cache_id = file_info.get('sqlite_cache_id')
         cached_df = file_info.get('cached_df')
+
+        if cache_id and cached_df is None:
+            # Загружаем DataFrame из SQLite (если ещё не в памяти)
+            try:
+                cached_df = sqlite_cache.load_full_dataframe(cache_id)
+                file_info['cached_df'] = cached_df
+            except Exception as sqlite_e:
+                logger.warning("SQLite-кэш недоступен для pivot: %s", sqlite_e)
+
         result = build_pivot_table(
             file_path, sheet_name,
             rows=rows,
@@ -398,6 +487,7 @@ def pivot_table():
             cols=cols,
             agg_functions=agg_functions,
             filters=filters,
+            selected_columns=selected_columns,
             output_format=output_format,
             cached_df=cached_df,
             totals_mode=totals_mode,
@@ -561,7 +651,11 @@ def close_file():
 
     file_info = _temp_files.pop(file_id, None)
     if file_info:
-        # Очищаем кэш, если был
+        # Очищаем SQLite-кэш
+        sqlite_cache_id = file_info.get('sqlite_cache_id')
+        if sqlite_cache_id:
+            sqlite_cache.delete_cache(sqlite_cache_id)
+        # Очищаем кэш DataFrame, если был
         if 'cached_df' in file_info:
             file_info['cached_df'] = None
         safe_remove(file_info['path'])

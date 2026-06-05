@@ -24,7 +24,7 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Если приложение установлено в Program Files — используем %APPDATA% для временных файлов
 _is_in_program_files = 'PROGRAMFILES' in os.environ and 'Program Files' in _PROJECT_ROOT
 if _is_in_program_files:
-    _data_dir = os.path.join(os.environ.get('APPDATA', _PROJECT_ROOT), 'Excel Converter')
+    _data_dir = os.path.join(os.environ.get('APPDATA', _PROJECT_ROOT), 'Personal Assistant')
 else:
     _data_dir = _PROJECT_ROOT
 
@@ -370,7 +370,7 @@ def install_update(zip_path: str) -> bool:
 
         bat_content = f"""@echo off
 chcp 65001 > nul
-echo Обновление Excel Converter...
+echo Обновление Personal Assistant...
 echo.
 
 :: Ждём 3 секунды, чтобы сервер успел остановиться

@@ -35,6 +35,7 @@ config/constructor_temp_files.json
 # Sessions & Logs
 flask_session/
 logs/
+server_log.txt
 
 # OS
 Thumbs.db
@@ -45,3 +46,12 @@ save_app.py
 templates/save_index.html
 Структура.txt
 models.py
+
+# Temp files
+temp/
+cookies.txt
+del_result.txt
+d.json
+update.zip
+_test_out.json
+*.csv
