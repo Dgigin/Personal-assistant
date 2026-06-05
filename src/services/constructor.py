@@ -24,14 +24,64 @@ from ..types import PivotResult, ApplyFiltersResult
 logger = logging.getLogger(__name__)
 
 # Константы
-AGG_COLUMN_NAME = '__agg__'
+AGG_COLUMN_NAME = 'Агрегация'
 """Имя колонки, указывающей тип агрегации в иерархическом формате."""
 
 DATE_PREFIXES = {'__год__', '__квартал__', '__месяц__', '__день__'}
 """Префиксы для виртуальных колонок декомпозиции дат."""
 
+# Отображение префиксов дат на человекочитаемые названия
+DATE_PREFIX_DISPLAY = {
+    '__год__': 'Год',
+    '__квартал__': 'Квартал',
+    '__месяц__': 'Месяц',
+    '__день__': 'День',
+}
+""""""
+
 # Директория для хранения сценариев
 SCENARIOS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'config', 'constructor_scenarios')
+
+
+def _humanize_pivot_columns(result: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Переименовывает колонки с внутренними префиксами дат в человекочитаемые названия
+    в ответе API (включая columns, pivot_data, row_columns).
+
+    Например: ``__год__Дата и время`` → ``Год``, ``__квартал__Дата и время`` → ``Квартал`` и т.д.
+    ``__agg__`` переименовывается через ``AGG_COLUMN_NAME`` отдельно.
+    """
+    if 'columns' not in result or not result['columns']:
+        return result
+
+    columns = result['columns']
+    pivot_data = result.get('pivot_data', [])
+
+    # Строим маппинг: старое имя → новое имя
+    rename_map = {}
+    for col in columns:
+        for prefix, display in DATE_PREFIX_DISPLAY.items():
+            if col.startswith(prefix):
+                rename_map[col] = display
+                break
+
+    if not rename_map:
+        return result
+
+    # Переименовываем в columns
+    result['columns'] = [rename_map.get(c, c) for c in columns]
+
+    # Переименовываем в pivot_data
+    for row in pivot_data:
+        for old_name, new_name in rename_map.items():
+            if old_name in row:
+                row[new_name] = row.pop(old_name)
+
+    # Переименовываем в row_columns, если есть
+    if 'row_columns' in result and result['row_columns']:
+        result['row_columns'] = [rename_map.get(c, c) for c in result['row_columns']]
+
+    return result
 
 
 def _ensure_scenarios_dir():
@@ -571,6 +621,7 @@ def build_pivot_table(
     cols: Optional[List[str]] = None,
     agg_functions: Optional[List[str]] = None,
     filters: Optional[Dict[str, Dict[str, Any]]] = None,
+    selected_columns: Optional[List[str]] = None,
     output_format: str = 'flat',
     cached_df: Optional[pd.DataFrame] = None,
     totals_mode: str = 'none',
@@ -606,6 +657,36 @@ def build_pivot_table(
         df = read_file_to_df(file_path, sheet_name=sheet_name, header=header_row, dtype=str)
     # Приводим всё к строке, чтобы избежать datetime объектов при JSON-сериализации
     df = df.fillna('').astype(str)
+
+    # Фильтрация колонок согласно "Отображаемые колонки" (Задача 1)
+    if selected_columns and len(selected_columns) > 0:
+        # Всегда сохраняем колонки, которые нужны для rows/values/cols,
+        # даже если они не отмечены (иначе pivot сломается)
+        needed_cols = set(rows + values + (cols or []))
+        # Убираем префиксы дат для поиска реальных колонок
+        clean_needed = set()
+        for c in needed_cols:
+            found = False
+            for prefix in DATE_PREFIXES:
+                if c.startswith(prefix):
+                    parent = c[len(prefix):]
+                    if parent in df.columns:
+                        clean_needed.add(parent)
+                    found = True
+                    break
+            if not found:
+                clean_needed.add(c)
+        # Отбираем только отмеченные + необходимые для pivot
+        keep_cols = set()
+        for c in selected_columns:
+            if c in df.columns:
+                keep_cols.add(c)
+        # Добавляем обязательные колонки, которых нет в selected_columns
+        for c in clean_needed:
+            if c in df.columns:
+                keep_cols.add(c)
+        if keep_cols:
+            df = df[list(keep_cols)]
 
     # Применяем фильтры если есть (общая функция)
     df = _apply_filters_to_df(df, filters)
@@ -664,14 +745,14 @@ def build_pivot_table(
         pivot_data = result_df.to_dict(orient='records')
         pivot_columns = result_df.columns.tolist()
 
-        return {
+        return _humanize_pivot_columns({
             'pivot_data': pivot_data,
             'columns': pivot_columns,
             'total_rows': total_rows,
             'aggregations': ['none'],
             'output_format': output_format,
             'message': 'Данные без агрегации',
-        }
+        })
 
     # Преобразуем значения в числа для агрегации (сохраняем NaN для пустых ячеек)
     for val_col in valid_values:
@@ -887,7 +968,7 @@ def build_pivot_table(
             pivot_data = combined.to_dict(orient='records')
             pivot_columns = combined.columns.tolist()
 
-            return {
+            return _humanize_pivot_columns({
                 'pivot_data': pivot_data,
                 'columns': pivot_columns,
                 'total_rows': total_rows,
@@ -895,7 +976,7 @@ def build_pivot_table(
                 'output_format': 'hierarchical',
                 'row_columns': valid_rows,
                 'agg_column': AGG_COLUMN_NAME,
-            }
+            })
         else:
             # Плоский (широкий) формат: объединяем все агрегации по row колонкам
             row_col_names = [c for c in valid_rows if c in agg_results[0].columns]
@@ -923,14 +1004,14 @@ def build_pivot_table(
             pivot_data = merged.to_dict(orient='records')
             pivot_columns = merged.columns.tolist()
 
-            return {
+            return _humanize_pivot_columns({
                 'pivot_data': pivot_data,
                 'columns': pivot_columns,
                 'total_rows': total_rows,
                 'aggregations': agg_functions,
                 'output_format': 'flat',
                 'row_columns': row_col_names,
-            }
+            })
 
     except Exception as e:
         logger.error('Ошибка построения сводной таблицы:\n%s', traceback.format_exc())

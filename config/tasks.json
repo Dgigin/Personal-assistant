@@ -1,36 +1,58 @@
 [
   {
-    "id": 26,
-    "text": "Баяндина - все доступы, срочно",
+    "id": 28,
+    "text": "ПРОЕКТ ПО ФИСКАЛИЗАЦИИ\nFORA, релиз прошел - некорректный формат файла скачивания\nEDS, релиз прошел в прод выпущен - уточнить у Романычевой",
     "status": "active",
     "completed": false,
     "completed_at": null,
     "cancelled_comment": null,
     "cancelled_at": null,
-    "created_at": 1780591236.939715,
+    "created_at": 1780651053.9489486,
     "order": 1
+  },
+  {
+    "id": 27,
+    "text": "QV - расхождения в отчете Кальяны КМ",
+    "status": "active",
+    "completed": false,
+    "completed_at": null,
+    "cancelled_comment": null,
+    "cancelled_at": null,
+    "created_at": 1780643214.1541302,
+    "order": 2
+  },
+  {
+    "id": 26,
+    "text": "Баяндина - все доступы, срочно",
+    "status": "archived",
+    "completed": true,
+    "completed_at": 1780643196.0366938,
+    "cancelled_comment": null,
+    "cancelled_at": null,
+    "created_at": 1780591236.939715,
+    "order": 3
   },
   {
     "id": 25,
     "text": "Щекалева Н / Малахова Н - проверить отчет",
-    "status": "active",
-    "completed": false,
-    "completed_at": null,
+    "status": "archived",
+    "completed": true,
+    "completed_at": 1780643198.7375572,
     "cancelled_comment": null,
     "cancelled_at": null,
     "created_at": 1780591222.2513392,
-    "order": 2
+    "order": 4
   },
   {
     "id": 24,
     "text": "Ога А - посмотреть чек",
-    "status": "active",
-    "completed": false,
-    "completed_at": null,
+    "status": "archived",
+    "completed": true,
+    "completed_at": 1780637016.2360082,
     "cancelled_comment": null,
     "cancelled_at": null,
     "created_at": 1780591197.9004195,
-    "order": 3
+    "order": 5
   },
   {
     "id": 23,
@@ -41,7 +63,7 @@
     "cancelled_comment": null,
     "cancelled_at": null,
     "created_at": 1780511009.5393198,
-    "order": 4
+    "order": 6
   },
   {
     "id": 22,
@@ -52,7 +74,7 @@
     "cancelled_comment": null,
     "cancelled_at": null,
     "created_at": 1780469025.182202,
-    "order": 5
+    "order": 7
   },
   {
     "id": 21,
@@ -63,7 +85,7 @@
     "cancelled_comment": null,
     "cancelled_at": null,
     "created_at": 1780466348.9033997,
-    "order": 6
+    "order": 8
   },
   {
     "id": 20,
@@ -74,7 +96,7 @@
     "cancelled_comment": null,
     "cancelled_at": null,
     "created_at": 1780379507.1088183,
-    "order": 7
+    "order": 9
   },
   {
     "id": 18,
@@ -84,18 +106,18 @@
     "completed_at": 1780388922.7206807,
     "cancelled_comment": null,
     "created_at": 1780304318.2451425,
-    "order": 9,
+    "order": 11,
     "cancelled_at": null
   },
   {
     "id": 4,
-    "text": "30.05.2026\nДоступы к вм/базе jira при падении аутсорсам https://j01.region1.ru/browse/SADMIN-2785",
+    "text": "30.05.2026\nДоступы к вм/базе jira при падении аутсорсам https://j01.region1.ru/browse/SADMIN-2785\n05.06.2026 с 12:00 до 14:00 тест, успешно запущен\nВ 14:00 выключить доступы",
     "status": "active",
     "completed": false,
     "completed_at": null,
     "cancelled_comment": null,
     "created_at": 1780148131.9619262,
-    "order": 10,
+    "order": 12,
     "cancelled_at": null
   },
   {
@@ -106,7 +128,7 @@
     "completed_at": null,
     "cancelled_comment": null,
     "created_at": 1780149390.800904,
-    "order": 11,
+    "order": 13,
     "cancelled_at": null
   },
   {
@@ -117,7 +139,7 @@
     "completed_at": null,
     "cancelled_comment": null,
     "created_at": 1780148055.7519283,
-    "order": 12,
+    "order": 14,
     "cancelled_at": null
   },
   {
@@ -128,7 +150,7 @@
     "completed_at": null,
     "cancelled_comment": null,
     "created_at": 1780148091.0171843,
-    "order": 13,
+    "order": 15,
     "cancelled_at": null
   },
   {
@@ -139,7 +161,7 @@
     "completed_at": 1780407171.5638254,
     "cancelled_comment": null,
     "created_at": 1780149313.2544396,
-    "order": 16,
+    "order": 18,
     "cancelled_at": null
   },
   {
@@ -150,7 +172,7 @@
     "completed_at": null,
     "cancelled_comment": null,
     "created_at": 1780149325.9936528,
-    "order": 17,
+    "order": 19,
     "cancelled_at": null
   },
   {
@@ -161,7 +183,7 @@
     "completed_at": null,
     "cancelled_comment": null,
     "created_at": 1780149342.0497363,
-    "order": 18,
+    "order": 20,
     "cancelled_at": null
   },
   {
@@ -172,7 +194,7 @@
     "completed_at": null,
     "cancelled_comment": null,
     "created_at": 1780149348.064274,
-    "order": 19,
+    "order": 21,
     "cancelled_at": null
   },
   {
@@ -183,7 +205,7 @@
     "completed_at": 1780407182.7848897,
     "cancelled_comment": null,
     "created_at": 1780149354.171007,
-    "order": 20,
+    "order": 22,
     "cancelled_at": null
   },
   {
@@ -194,7 +216,7 @@
     "completed_at": null,
     "cancelled_comment": null,
     "created_at": 1780149359.1518908,
-    "order": 21,
+    "order": 23,
     "cancelled_at": null
   },
   {
@@ -205,7 +227,7 @@
     "completed_at": null,
     "cancelled_comment": "*",
     "created_at": 1780379195.0375462,
-    "order": 22,
+    "order": 24,
     "cancelled_at": 1780379496.3923612
   },
   {
@@ -216,7 +238,7 @@
     "completed_at": null,
     "cancelled_comment": null,
     "created_at": 1780149370.5029256,
-    "order": 23,
+    "order": 25,
     "cancelled_at": null
   },
   {
@@ -227,7 +249,7 @@
     "completed_at": 1780407184.3630428,
     "cancelled_comment": null,
     "created_at": 1780149376.1679256,
-    "order": 24,
+    "order": 26,
     "cancelled_at": null
   },
   {
@@ -238,7 +260,7 @@
     "completed_at": null,
     "cancelled_comment": null,
     "created_at": 1780149382.3349783,
-    "order": 25,
+    "order": 27,
     "cancelled_at": null
   }
 ]

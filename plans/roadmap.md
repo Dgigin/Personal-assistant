@@ -1,4 +1,4 @@
-# Дорожная карта (Roadmap) проекта `excel_converter`
+# Дорожная карта (Roadmap) проекта `personal_assistant`
 
 > **Дата последнего обновления:** 2026-06-04
 > **Текущая версия:** 1.0.7
@@ -85,6 +85,17 @@
 - [x] **Обновление всех `pd.read_excel()`** → `read_file_to_df()` в constructor.py, converter.py, routes
 - [x] **Фронтенд** — accept-атрибуты `.xlsx, .xls, .csv`
 - [x] **API-тесты** — 5 тестов на CSV (все пройдены)
+
+---
+
+## ✅ Фаза 2.7 — Оптимизация SQLite + Column filtering + UI (завершено, v1.0.8)
+
+- [x] **SQLite-кэширование** — новый модуль [`src/utils/sqlite_cache.py`](src/utils/sqlite_cache.py): create/save/query/load/delete
+- [x] **Устранение двойного чтения Excel** — `load_sheet()` читает всё ОДИН раз → SQLite + preview из одного DataFrame
+- [x] **Фильтрация колонок** — чекбоксы "Отображаемые колонки" реально фильтруют вывод, pivot-обязательные колонки сохраняются принудительно
+- [x] **UI: relocation кнопки загрузки** — кнопка "📥 Загрузить" и прогресс-бар перенесены под селект листа (вертикальная вёрстка)
+- [x] **Очистка кэша** — при `close_file()` SQLite-кэш удаляется
+- [x] **Fallback** — при отсутствии SQLite-кэша код падает на чтение из Excel
 
 ---
 

@@ -1,6 +1,6 @@
-# Excel Converter
+# Personal Assistant
 
-Веб-приложение для конвертации Excel-файлов, построения сводных таблиц, работы со справочниками и AI-чата.
+Веб-приложение для конвертации Excel-файлов, построения сводных таблиц, работы со справочниками, AI-чата и управления задачами.
 
 ## Возможности
 
@@ -54,8 +54,8 @@
 
 1. Клонировать репозиторий:
 ```bash
-git clone https://github.com/yourusername/excel_converter.git
-cd excel_converter
+git clone https://github.com/yourusername/personal_assistant.git
+cd personal_assistant
 ```
 
 2. Создать виртуальное окружение:

@@ -1,4 +1,4 @@
-# Проект `excel_converter` — Документация
+# Проект `personal_assistant` — Документация
 
 > **Дата последнего обновления:** 2026-06-04
 > **Текущая версия:** 1.0.7
@@ -39,6 +39,7 @@
 
 | Версия | Дата | Ссылка | Основные изменения |
 |--------|------|--------|-------------------|
+| v1.0.8 | 05.06.2026 | — | SQLite-кэш данных листа, фильтрация колонок, UI relocation кнопки загрузки |
 | v1.0.7 | 04.06.2026 | [Релиз](https://github.com/Dgigin/Personal-assistant/releases/tag/v1.0.7) | CSV поддержка, оптимизация загрузки .xlsx, индикаторы прогресса |
 | v1.0.6 | 04.06.2026 | [Релиз](https://github.com/Dgigin/Personal-assistant/releases/tag/v1.0.6) | Исправление update.bat (полная переработка) |
 | v1.0.5 | 04.06.2026 | [Релиз](https://github.com/Dgigin/Personal-assistant/releases/tag/v1.0.5) | Очистка stale файлов, подавление логов Werkzeug |
@@ -79,3 +80,17 @@ python -m waitress --host=127.0.0.1 --port=5000 wsgi:application
 | [`plans/security.md`](security.md) | 🆕 Создан |
 | [`plans/features.md`](features.md) | 🆕 Создан |
 | [`plans/roadmap.md`](roadmap.md) | 🆕 Создан |
+
+## 🆕 Изменённые файлы (v1.0.8)
+
+| Файл | Изменения |
+|------|-----------|
+| [`src/utils/sqlite_cache.py`](../src/utils/sqlite_cache.py) | 🆕 Создан — модуль SQLite-кэша: create/save/query/load/delete |
+| [`src/routes/constructor_routes.py`](../src/routes/constructor_routes.py) | `load_sheet()` — чтение Excel ОДИН раз → SQLite + preview; `close_file()` — очистка кэша; `pivot_table()` — загрузка из SQLite если нет `cached_df`; `preview_data()` — запрос через SQLite-кэш |
+| [`src/services/constructor.py`](../src/services/constructor.py) | `build_pivot_table()` — добавлен параметр `selected_columns`, фильтрация колонок с сохранением pivot-обязательных |
+| [`templates/index.html`](../templates/index.html) | Кнопка загрузки листа и прогресс-бар перенесены под селект листа; сбор `selected_columns` из чекбоксов |
+| [`version.json`](../version.json) | Версия обновлена до 1.0.8 |
+| [`plans/features.md`](features.md) | Добавлены секции: фильтрация колонок, SQLite-кэш, UI relocation |
+| [`plans/roadmap.md`](roadmap.md) | Добавлена Фаза 2.7 (SQLite + column filtering + UI) |
+| [`plans/architecture.md`](architecture.md) | Добавлен `sqlite_cache.py`, папка `sqlite_cache/`, обновлена секция БД |
+| [`plans/improvements_plan_new.md`](improvements_plan_new.md) | Добавлена v1.0.8 в историю и список изменённых файлов |

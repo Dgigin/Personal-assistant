@@ -1,4 +1,4 @@
-; Inno Setup скрипт для сборки установщика Excel Converter
+; Inno Setup скрипт для сборки установщика Personal Assistant
 ; Требуется Inno Setup 6+ (https://jrsoftware.org/isinfo.php)
 ;
 ; Инструкция по сборке установщика:
@@ -10,8 +10,8 @@
 ; Для автоматической сборки из командной строки:
 ;   "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
 
-#define MyAppName "Excel Converter"
-#define MyAppVersion "1.0.6"
+#define MyAppName "Personal Assistant"
+#define MyAppVersion "1.0.8"
 #define MyAppPublisher "Dgigin"
 #define MyAppURL "https://github.com/Dgigin/Personal-assistant"
 #define MyAppExeName "run.bat"
@@ -34,7 +34,7 @@ AllowNoIcons=yes
 PrivilegesRequired=admin
 PrivilegesRequiredOverridesAllowed=dialog
 OutputDir=Output
-OutputBaseFilename=ExcelConverter-Setup-{#MyAppVersion}
+OutputBaseFilename=PersonalAssistant-Setup-{#MyAppVersion}
 SetupIconFile=
 Compression=lzma2/max
 SolidCompression=yes
@@ -54,13 +54,13 @@ Name: "desktopicon"; Description: "Создать ярлык на рабочем
 
 [Dirs]
 ; Директории для пользовательских данных (за пределами Program Files)
-Name: "{userappdata}\Excel Converter\logs"
-Name: "{userappdata}\Excel Converter\uploads"
-Name: "{userappdata}\Excel Converter\flask_session"
-Name: "{userappdata}\Excel Converter\temp\update"
-Name: "{userappdata}\Excel Converter\config"
-Name: "{userappdata}\Excel Converter\config\constructor_scenarios"
-Name: "{userappdata}\Excel Converter\profiles"
+Name: "{userappdata}\Personal Assistant\logs"
+Name: "{userappdata}\Personal Assistant\uploads"
+Name: "{userappdata}\Personal Assistant\flask_session"
+Name: "{userappdata}\Personal Assistant\temp\update"
+Name: "{userappdata}\Personal Assistant\config"
+Name: "{userappdata}\Personal Assistant\config\constructor_scenarios"
+Name: "{userappdata}\Personal Assistant\profiles"
 
 [Files]
 ; Корневые файлы
@@ -102,7 +102,7 @@ Source: "update.bat"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesnte
 ; Ярлык в меню Пуск
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
 ; Ярлык для веб-интерфейса
-Name: "{group}\Excel Converter (веб-интерфейс)"; Filename: "http://localhost:5000"
+Name: "{group}\Personal Assistant (веб-интерфейс)"; Filename: "http://localhost:5000"
 ; Ярлык удаления
 Name: "{group}\Удалить {#MyAppName}"; Filename: "{uninstallexe}"
 ; Ярлык на рабочем столе (опционально)
@@ -135,7 +135,7 @@ begin
   begin
     MsgBox(
       'Python не найден на этом компьютере.' + #13#10 + #13#10 +
-      'Для работы Excel Converter требуется Python 3.8 или выше.' + #13#10 + #13#10 +
+      'Для работы Personal Assistant требуется Python 3.8 или выше.' + #13#10 + #13#10 +
       'Скачайте Python с https://www.python.org/downloads/' + #13#10 +
       'и запустите установщик снова.',
       mbError,

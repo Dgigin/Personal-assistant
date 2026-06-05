@@ -708,22 +708,20 @@
                 <div id="constructorStep2" style="display:none;">
                     <details open>
                         <summary>📋 Выбор листа и колонок</summary>
-                        <div class="flex-row" style="margin-top:10px;">
-                            <div class="form-group" style="flex:1;">
-                                <label>Лист</label>
-                                <select id="constructorSheetSelect" title="Выберите лист из загруженного файла"></select>
+                        <div class="form-group" style="margin-top:10px;">
+                            <label>Лист</label>
+                            <select id="constructorSheetSelect" title="Выберите лист из загруженного файла"></select>
+                        </div>
+                        <div style="margin-top:6px;">
+                            <button id="constructorLoadSheetBtn" class="btn-secondary" title="Загрузить данные выбранного листа">📥 Загрузить</button>
+                            <span id="constructorLoadSheetSpinner" style="display:none;"><span class="spinner-sm"></span></span>
+                        </div>
+                        <div id="constructorSheetProgress" class="constructor-progress" style="margin-top:6px; margin-bottom:10px;">
+                            <div class="progress-label" id="constructorSheetProgressLabel">⏳ Загрузка данных листа...</div>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" id="constructorSheetProgressFill"></div>
                             </div>
-                            <div class="form-group" style="flex:0; align-self:flex-end;">
-                                <button id="constructorLoadSheetBtn" class="btn-secondary" title="Загрузить данные выбранного листа">📥 Загрузить</button>
-                                <span id="constructorLoadSheetSpinner" style="display:none;"><span class="spinner-sm"></span></span>
-                            </div>
-                            <div id="constructorSheetProgress" class="constructor-progress" style="margin-bottom:10px;">
-                                <div class="progress-label" id="constructorSheetProgressLabel">⏳ Загрузка данных листа...</div>
-                                <div class="progress-bar-bg">
-                                    <div class="progress-bar-fill" id="constructorSheetProgressFill"></div>
-                                </div>
-                                <div class="progress-text" id="constructorSheetProgressText">0%</div>
-                            </div>
+                            <div class="progress-text" id="constructorSheetProgressText">0%</div>
                         </div>
                         <div class="form-group" style="margin-top:10px;">
                             <label>Отображаемые колонки</label>
@@ -2915,6 +2913,7 @@
         document.querySelectorAll('.constructor-col-label:not([style*="display: none"]) .constructor-col-checkbox').forEach(cb => {
             cb.checked = true;
         });
+        syncPivotSelectsWithCheckedColumns();
     });
 
     // Очистить все (только видимые после поиска)
@@ -2922,6 +2921,14 @@
         document.querySelectorAll('.constructor-col-label:not([style*="display: none"]) .constructor-col-checkbox').forEach(cb => {
             cb.checked = false;
         });
+        syncPivotSelectsWithCheckedColumns();
+    });
+
+    // Синхронизация выпадающих списков сводной при изменении любого чекбокса
+    document.getElementById('constructorColumnsList')?.addEventListener('change', (e) => {
+        if (e.target.classList.contains('constructor-col-checkbox')) {
+            syncPivotSelectsWithCheckedColumns();
+        }
     });
 
     function renderConstructorFilters(columns) {
@@ -2955,6 +2962,70 @@
         document.getElementById('constructorPivotValues').innerHTML = renderOptions(columns);
         document.getElementById('constructorPivotCols').innerHTML = renderOptions(columns);
         // Синхронизируем видимые sortable-списки со скрытыми select
+        syncConstructorRowsList();
+        syncConstructorValuesList();
+        syncConstructorColsList();
+        // Фильтруем выпадающие списки по отмеченным чекбоксам
+        syncPivotSelectsWithCheckedColumns();
+    }
+
+    /**
+     * Фильтрует опции в выпадающих списках сводной таблицы (строки/значения/колонки)
+     * в соответствии с отмеченными чекбоксами в разделе «Отображаемые колонки».
+     * Использует полный список колонок (constructorAllColumns), а не текущие опции
+     * select'ов — чтобы список не сокращался при повторных вызовах.
+     * Если колонка не отмечена — она пропадает из выпадающих списков,
+     * но если она уже выбрана в pivot — остаётся (чтобы не сломать текущую сводную).
+     */
+    function syncPivotSelectsWithCheckedColumns() {
+        const checkedSet = new Set();
+        document.querySelectorAll('.constructor-col-checkbox:checked').forEach(cb => {
+            checkedSet.add(cb.value);
+        });
+        const dateSet = new Set(constructorDateColumns || []);
+        function baseColName(val) {
+            const prefixes = ['__год__', '__квартал__', '__месяц__', '__день__'];
+            for (const p of prefixes) {
+                if (val.startsWith(p)) return val.slice(p.length);
+            }
+            return val;
+        }
+        // Строим HTML опций из ПОЛНОГО списка колонок, фильтруя по чекбоксам
+        function buildFilteredOptions(columns) {
+            let html = '';
+            columns.forEach(col => {
+                const show = checkedSet.has(col);
+                if (show) {
+                    html += `<option value="${escapeHtml(col)}">${escapeHtml(col)}</option>`;
+                    // Если колонка-дата — добавляем под-опции для декомпозиции
+                    if (dateSet.has(col)) {
+                        const parts = [
+                            { value: `__год__${col}`, label: `📅 ▸ ${escapeHtml(col)} ▸ год` },
+                            { value: `__квартал__${col}`, label: `📅 ▸ ${escapeHtml(col)} ▸ квартал` },
+                            { value: `__месяц__${col}`, label: `📅 ▸ ${escapeHtml(col)} ▸ месяц` },
+                            { value: `__день__${col}`, label: `📅 ▸ ${escapeHtml(col)} ▸ день` },
+                        ];
+                        parts.forEach(p => {
+                            html += `<option value="${escapeHtml(p.value)}" style="padding-left:20px; color:#2c6b9e;">&nbsp;&nbsp;↳ ${p.label}</option>`;
+                        });
+                    }
+                }
+            });
+            return html;
+        }
+        ['constructorPivotRows', 'constructorPivotValues', 'constructorPivotCols'].forEach(id => {
+            const select = document.getElementById(id);
+            if (!select) return;
+            const selectedValues = new Set(Array.from(select.selectedOptions).map(o => o.value));
+            const newHtml = buildFilteredOptions(constructorAllColumns || []);
+            select.innerHTML = newHtml;
+            // Восстанавливаем selected — если опция всё ещё существует в новом списке
+            selectedValues.forEach(val => {
+                const opt = Array.from(select.options).find(o => o.value === val);
+                if (opt) opt.selected = true;
+            });
+        });
+        // Перерисовываем sortable-списки
         syncConstructorRowsList();
         syncConstructorValuesList();
         syncConstructorColsList();
@@ -3460,7 +3531,7 @@
         header.innerHTML = columns.map(c => {
             const isItogoCol = c.includes('Итого');
             if (isHierarchical && c === aggColumn) {
-                return '<th style="background:#f0f4c3;">📊 Показатель</th>';
+                return '<th style="background:#f0f4c3;">📊 Агрегация</th>';
             }
             if (isItogoCol) {
                 return `<th style="background:#fff3e0; color:#e65100; font-weight:700;">${escapeHtml(c)}</th>`;
@@ -3669,6 +3740,9 @@
         try {
             const totalsModeRadio = document.querySelector('input[name="totalsMode"]:checked');
             const totalsMode = totalsModeRadio ? totalsModeRadio.value : 'none';
+            // Собираем отмеченные колонки из "Отображаемые колонки"
+            const checkedCols = document.querySelectorAll('.constructor-col-checkbox:checked');
+            const selectedColumns = Array.from(checkedCols).map(cb => cb.value);
             const res = await fetch('/api/constructor/pivot', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -3681,6 +3755,7 @@
                     agg_functions: aggFunctions,
                     output_format: outputFormat,
                     filters: Object.keys(activeFilters).length > 0 ? activeFilters : null,
+                    selected_columns: selectedColumns.length > 0 ? selectedColumns : null,
                     totals_mode: totalsMode,
                     header_row: (constructorSheetHeaderConfig[constructorCurrentSheet]?.header_row) || 0,
                 })
@@ -3934,6 +4009,8 @@
                 cb.checked = params.selected_columns.includes(cb.value);
             });
         }
+        // Синхронизируем выпадающие списки сводной с обновлёнными чекбоксами
+        syncPivotSelectsWithCheckedColumns();
 
         // Применяем настройки сводной
         const pivotRows = document.getElementById('constructorPivotRows');

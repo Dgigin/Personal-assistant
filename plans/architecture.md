@@ -1,4 +1,4 @@
-# Архитектура проекта `excel_converter`
+# Архитектура проекта `personal_assistant`
 
 > **Дата последнего обновления:** 2026-06-04
 > **Текущая версия:** 1.0.7
@@ -58,8 +58,11 @@ f:/excel_converter/
 │   │   ├── ocr_service.py      # EasyOCR распознавание
 │   │   └── chat_service.py     # Логика чата с DeepSeek
 │   └── utils/
-│       ├── file_utils.py   # Работа с файлами (read_file_to_df, safe_filename и т.д.)
-│       └── json_utils.py   # JSON load/save
+│       ├── file_utils.py       # Работа с файлами (read_file_to_df, safe_filename и т.д.)
+│       ├── json_utils.py       # JSON load/save
+│       └── sqlite_cache.py     # 🆕 SQLite-кэш данных листа (v1.0.8)
+│
+│   config/sqlite_cache/        # 🆕 Файлы SQLite-кэша конструктора (автоочистка при close_file)
 │
 ├── templates/
 │   └── index.html          # Весь фронтенд (SPA, ~4200 строк)
@@ -116,6 +119,7 @@ app = create_app()  # Flask-фабрика
 ### 4. База данных
 
 - **SQLite**: история чатов DeepSeek (`config/chat_history.db`)
+- **SQLite (кэш)**: временное хранилище данных листа конструктора (`config/sqlite_cache/`), создаётся при `load_sheet()`, удаляется при `close_file()`
 - **JSON-файлы**: задачи, справочники, профили, сценарии
 - **Flask-Session**: файловое хранилище сессий
 

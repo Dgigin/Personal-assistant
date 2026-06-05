@@ -20,7 +20,7 @@ class Config:
     # для портативной версии (запуск из папки проекта) — ту же папку.
     _is_in_program_files = 'PROGRAMFILES' in os.environ and 'Program Files' in BASE_DIR
     if _is_in_program_files:
-        USER_DATA_DIR = os.path.join(os.environ.get('APPDATA', BASE_DIR), 'Excel Converter')
+        USER_DATA_DIR = os.path.join(os.environ.get('APPDATA', BASE_DIR), 'Personal Assistant')
     else:
         USER_DATA_DIR = BASE_DIR
 
