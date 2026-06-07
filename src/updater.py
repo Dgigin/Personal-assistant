@@ -259,7 +259,7 @@ def main():
         pass
 
     if not os.path.exists(zip_path):
-        print(f"[!] Архив не найден: {zip_path}")
+        print(f"[!] Архив не найден: {{zip_path}}")
         sys.exit(1)
 
     print("[*] Распаковка обновления...")
@@ -282,7 +282,7 @@ def main():
             dp = os.path.join(target_dir, d)
             app_py = os.path.join(dp, "app.py")
             if os.path.exists(app_py):
-                print(f"[*] Перемещение файлов из {d}/...")
+                print(f"[*] Перемещение файлов из {{d}}/...")
                 for fn in os.listdir(dp):
                     if fn in ("update.bat", "apply_update.py"):
                         continue
