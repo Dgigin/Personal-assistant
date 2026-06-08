@@ -47,12 +47,23 @@ FORBIDDEN_PATTERNS = [
 
 
 def _is_forbidden(arcname: str) -> bool:
-    """Проверяет, соответствует ли файл запрещённому паттерну."""
+    """Проверяет, соответствует ли файл запрещённому паттерну.
+
+    Правила сопоставления:
+    - Паттерны с '/' на конце (директории) — проверка по префиксу пути
+    - Паттерны без '/' на конце (файлы) — точное совпадение полного пути
+    """
     # Нормализуем разделители для кроссплатформенности
     normalized = arcname.replace("\\", "/")
     for pattern in FORBIDDEN_PATTERNS:
-        if pattern in normalized:
-            return True
+        if pattern.endswith("/"):
+            # Паттерн директории — проверяем, что путь начинается с этой директории
+            if normalized.startswith(pattern):
+                return True
+        else:
+            # Паттерн файла — точное совпадение полного пути
+            if normalized == pattern:
+                return True
     return False
 
 
