@@ -86,9 +86,6 @@ Source: "src\utils\*.py"; DestDir: "{app}\src\utils"; Flags: ignoreversion recur
 ; Папка templates
 Source: "templates\*"; DestDir: "{app}\templates"; Flags: ignoreversion recursesubdirs
 
-; Папка plans (документация)
-Source: "plans\*.md"; DestDir: "{app}\plans"; Flags: ignoreversion recursesubdirs
-
 ; README
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
 

@@ -4,9 +4,13 @@
 ВНИМАНИЕ: Файлы с пользовательскими данными (config/tasks.json, config/departments.json,
 profiles/*.json и т.д.) НЕ включаются в update.zip — они создаются при первом запуске
 приложения или копируются из example-файлов.
+
+Безопасность: Любой файл, соответствующий FORBIDDEN_PATTERNS, будет отклонён на этапе
+сборки с критической ошибкой. Это защита от случайного включения чувствительных данных.
 """
 import zipfile
 import os
+import sys
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 
@@ -28,6 +32,29 @@ FILES = [
     "profiles/example.json",
 ]
 
+# Запрещённые паттерны — ни один файл, содержащий эти подстроки, не попадёт в update.zip
+# Защита от случайного включения чувствительных данных при изменении FILES
+FORBIDDEN_PATTERNS = [
+    "config/tasks.json",
+    "config/departments.json",
+    "config/expense_articles.json",
+    "config/constructor_scenarios",
+    "profiles/",
+    "plans/",
+    "create_release.py",
+    ".env",
+]
+
+
+def _is_forbidden(arcname: str) -> bool:
+    """Проверяет, соответствует ли файл запрещённому паттерну."""
+    # Нормализуем разделители для кроссплатформенности
+    normalized = arcname.replace("\\", "/")
+    for pattern in FORBIDDEN_PATTERNS:
+        if pattern in normalized:
+            return True
+    return False
+
 
 def collect_files(base_dir):
     """Рекурсивно собираем .py файлы из src/, .json из config/ и profiles/."""
@@ -43,11 +70,17 @@ def collect_files(base_dir):
                 for fname in fnames:
                     fpath = os.path.join(root, fname)
                     arcname = os.path.relpath(fpath, base_dir)
+                    if _is_forbidden(arcname):
+                        print(f"  [!] Пропущен (запрещённый паттерн): {arcname}")
+                        continue
                     files_to_zip.append((fpath, arcname))
         else:
             # Конкретный файл
             if os.path.exists(path):
                 arcname = os.path.relpath(path, base_dir)
+                if _is_forbidden(arcname):
+                    print(f"  [!!] ОШИБКА: {entry} запрещён к включению в update.zip!")
+                    sys.exit(1)
                 files_to_zip.append((path, arcname))
             else:
                 print(f"  [!] Пропущен (не найден): {entry}")
