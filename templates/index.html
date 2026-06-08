@@ -570,22 +570,24 @@
             margin-bottom: 4px;
         }
 
+        /* Индикатор версии в шапке */
         #versionIndicator {
-            position: fixed;
-            bottom: 10px;
-            right: 20px;
-            font-size: 11px;
+            font-size: 12px;
             color: var(--text-muted);
-            z-index: 9994;
             cursor: pointer;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 4px;
-            transition: color 0.2s;
+            padding: 2px 8px;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            transition: color 0.2s, background 0.2s;
             user-select: none;
+            line-height: 1.4;
         }
         #versionIndicator:hover {
             color: var(--text-medium);
+            background: var(--bg-hover);
         }
         #versionIndicator .version-dot {
             display: inline-block;
@@ -633,30 +635,64 @@
         .border-light { border:1px solid var(--border-light) !important; }
         .border-input { border:1px solid var(--border-input) !important; }
 
-        /* Переключатель темы */
+        /* Toast-уведомление (inline рядом с версией) */
+        .update-toast {
+            display: none;
+            align-items: center;
+            padding: 3px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1.4;
+            animation: toastIn 0.3s ease-out;
+            white-space: nowrap;
+        }
+        .update-toast.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .update-toast.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .update-toast.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .update-toast.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-10px); }
+        }
+
+        /* Переключатель темы в шапке */
         .theme-toggle {
-            position: fixed;
-            bottom: 35px;
-            right: 20px;
-            z-index: 9996;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-full);
-            padding: 6px;
+            background: none;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            padding: 2px 6px;
             cursor: pointer;
-            font-size: 18px;
-            width: 38px;
-            height: 38px;
-            display: flex;
+            font-size: 16px;
+            line-height: 1.4;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            box-shadow: var(--shadow-card);
-            transition: background 0.2s, box-shadow 0.2s;
-            line-height: 1;
+            transition: background 0.2s;
+            color: var(--text-muted);
         }
         .theme-toggle:hover {
             background: var(--bg-hover);
-            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
         }
 
         /* ========== КЛАССЫ ДЛЯ JS-ГЕНЕРИРУЕМЫХ СТИЛЕЙ ========== */
@@ -829,10 +865,24 @@
 
 <!-- Основной контент приложения (скрывается при показе модалки логина) -->
 <div id="appContent">
-<h1 style="display:inline-block;">📋 Личный помощник</h1>
-<span id="logoutBtn" style="display:none; float:right; margin-top:10px;">
-    <button onclick="_auth.logout()" class="btn-logout" title="Выйти из учётной записи">🚪 Выйти</button>
-</span>
+<div style="margin-bottom:16px;">
+    <!-- Верхняя строка: версия + уведомления -->
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:2px; min-height:22px;">
+        <div id="versionIndicator" title="Версия приложения" style="cursor:pointer;">
+            <span class="version-dot"></span>
+            <span id="versionText">v1.0.0</span>
+        </div>
+        <div id="updateToast" class="update-toast"></div>
+    </div>
+    <!-- Нижняя строка: заголовок + элементы управления -->
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <h1 style="display:inline-block; margin:0;">📋 Личный помощник</h1>
+        <button id="themeToggle" class="theme-toggle" title="Переключить тему (светлая/тёмная)">🌙</button>
+        <span id="logoutBtn" style="display:none; margin-left:auto;">
+            <button onclick="_auth.logout()" class="btn-logout" title="Выйти из учётной записи">🚪 Выйти</button>
+        </span>
+    </div>
+</div>
 <div class="grid-2col">
     <!-- Левая панель: Лимиты Т5 + DeepSeek -->
     <div class="left-panel">
@@ -4434,9 +4484,21 @@
         // Периодическая проверка обновлений (раз в 6 часов)
         checkForUpdates();
         setInterval(checkForUpdates, 6 * 60 * 60 * 1000);
+
+        // Клик по версии — ручная проверка и показ баннера/тост-уведомления
+        const verIndicator = document.getElementById('versionIndicator');
+        if (verIndicator) {
+            verIndicator.addEventListener('click', function(e) {
+                e.stopPropagation();
+                _updateDismissed = false;
+                // Ручная проверка с показом тост-уведомления
+                checkForUpdates(true);
+            });
+        }
     }
 
-    function checkForUpdates() {
+    function checkForUpdates(isManual) {
+        isManual = isManual || false;
         fetch('/api/check_update')
             .then(r => r.json())
             .then(data => {
@@ -4446,24 +4508,28 @@
                 if (data.error) {
                     if (dot) dot.className = 'version-dot error';
                     if (indicator) indicator.title = 'Ошибка проверки обновлений';
+                    if (isManual) showToast('❌ Ошибка проверки обновлений', 'error');
                     return;
                 }
 
                 const versionText = document.getElementById('versionText');
                 if (versionText) versionText.textContent = 'v' + data.current_version;
 
-                if (data.has_update && !_updateDismissed) {
+                if (data.has_update) {
                     if (dot) dot.className = 'version-dot update-available';
                     if (indicator) indicator.title = 'Доступно обновление v' + data.latest_version;
-                    showUpdateBanner(data);
+                    if (!_updateDismissed) showUpdateBanner(data);
+                    if (isManual) showToast('📦 Доступно обновление v' + data.latest_version + '!', 'warning', 5000);
                 } else {
                     if (dot) dot.className = 'version-dot';
                     if (indicator) indicator.title = 'Актуальная версия';
+                    if (isManual) showToast('✅ Актуальная версия v' + data.current_version, 'success');
                 }
             })
             .catch(() => {
                 const dot = document.querySelector('.version-dot');
                 if (dot) dot.className = 'version-dot error';
+                if (isManual) showToast('❌ Ошибка проверки обновлений', 'error');
             });
     }
 
@@ -4594,6 +4660,39 @@
         return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     }
 
+    /**
+     * Показывает тост-уведомление в правом верхнем углу.
+     * @param {string} message - Текст уведомления
+     * @param {string} type - Тип: 'success' | 'info' | 'warning' | 'error'
+     * @param {number} duration - Время показа в мс (по умолч. 3000)
+     */
+    function showToast(message, type, duration) {
+        duration = duration || 3000;
+        const toast = document.getElementById('updateToast');
+        if (!toast) return;
+
+        // Предыдущий таймер автозакрытия
+        if (toast._hideTimer) {
+            clearTimeout(toast._hideTimer);
+            toast._hideTimer = null;
+        }
+
+        // Сбрасываем классы
+        toast.className = 'update-toast ' + type;
+        toast.textContent = message;
+        toast.style.display = 'flex';
+
+        // Автозакрытие
+        toast._hideTimer = setTimeout(function() {
+            toast.style.animation = 'toastOut 0.3s ease-out';
+            setTimeout(function() {
+                toast.style.display = 'none';
+                toast.style.animation = 'toastIn 0.3s ease-out';
+                toast.className = 'update-toast';
+            }, 300);
+        }, duration);
+    }
+
     // Запускаем систему обновлений после загрузки страницы
     initUpdateSystem();
 
@@ -4614,12 +4713,6 @@
     </div>
 </div>
 
-<div id="versionIndicator" title="Версия приложения">
-    <span class="version-dot"></span>
-    <span id="versionText">v1.0.0</span>
-</div>
-<!-- Кнопка переключения темы -->
-<button id="themeToggle" class="theme-toggle" title="Переключить тему (светлая/тёмная)">🌙</button>
 </div><!-- /appContent -->
 <script>
     // ========== ТЁМНАЯ ТЕМА ==========
