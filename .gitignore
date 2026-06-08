@@ -55,3 +55,12 @@ d.json
 update.zip
 _test_out.json
 *.csv
+
+# Installer output
+Output/
+
+# Temp release scripts (may contain tokens)
+_upload_installer.py
+_check_release.py
+_check_release_assets.py
+_upload_installer_110.py
