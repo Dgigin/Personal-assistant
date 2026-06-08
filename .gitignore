@@ -44,6 +44,10 @@ config/expense_articles.json
 config/constructor_scenarios/
 profiles/
 
+# Plans (internal documentation, not for public repo)
+plans/
+
+
 # OS
 Thumbs.db
 .DS_Store
