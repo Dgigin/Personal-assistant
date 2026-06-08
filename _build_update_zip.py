@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Сборка update.zip для GitHub Release — только необходимые файлы."""
+"""Сборка update.zip для GitHub Release — только необходимые файлы.
+
+ВНИМАНИЕ: Файлы с пользовательскими данными (config/tasks.json, config/departments.json,
+profiles/*.json и т.д.) НЕ включаются в update.zip — они создаются при первом запуске
+приложения или копируются из example-файлов.
+"""
 import zipfile
 import os
 
@@ -15,14 +20,12 @@ FILES = [
     "src/",
     # templates
     "templates/index.html",
-    # config (только .json, не runtime базы)
-    "config/departments.json",
-    "config/expense_articles.json",
-    "config/constructor_temp_files.json",
-    "config/tasks.json",
-    "config/constructor_scenarios/",
-    # profiles
-    "profiles/",
+    # example-файлы конфигов (без реальных данных)
+    "config/departments.json.example",
+    "config/expense_articles.json.example",
+    "config/tasks.json.example",
+    # example-файл профиля
+    "profiles/example.json",
 ]
 
 

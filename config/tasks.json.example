@@ -1,0 +1,13 @@
+[
+  {
+    "id": 1,
+    "text": "Пример задачи",
+    "status": "active",
+    "completed": false,
+    "completed_at": null,
+    "cancelled_comment": null,
+    "cancelled_at": null,
+    "created_at": 1700000000.0,
+    "order": 1
+  }
+]

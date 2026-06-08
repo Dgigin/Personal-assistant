@@ -37,6 +37,13 @@ flask_session/
 logs/
 server_log.txt
 
+# User data (config files with sensitive business info)
+config/tasks.json
+config/departments.json
+config/expense_articles.json
+config/constructor_scenarios/
+profiles/
+
 # OS
 Thumbs.db
 .DS_Store
