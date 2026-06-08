@@ -6,8 +6,167 @@
     <title>Личный помощник</title>
     <style>
         * { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f0f2f5; padding: 20px; }
-        h1 { text-align: center; margin-bottom: 20px; color: #333; }
+
+        /* ========== CSS-переменные (светлая тема) ========== */
+        :root {
+            /* Фоны */
+            --bg-body: #f0f2f5;
+            --bg-card: #ffffff;
+            --bg-sidebar: #f8f9fa;
+            --bg-input: #ffffff;
+            --bg-table-header: #f1f1f1;
+            --bg-table-stripe: #fafafa;
+            --bg-hover: #e9ecef;
+            --bg-active: #e0e7ff;
+            --bg-progress: #e0e0e0;
+            --bg-badge: #e8f5e9;
+            --bg-chat-user: #0066ff;
+            --bg-chat-assistant: #f1f3f5;
+            --bg-update: #fff3cd;
+            --bg-warning: #fff3cd;
+            --bg-danger-light: #ffebee;
+            --bg-mapping: #fafafa;
+            --bg-task-group: #f5f5f5;
+            --bg-code: #f8f9fa;
+            --bg-attached: #f0f8ff;
+            --bg-modal-overlay: rgba(0,0,0,0.6);
+            --bg-deepseek-warning: #fef9e7;
+            --bg-btn-later: #f5f5f5;
+            --bg-badge-count: #d0d0d0;
+
+            /* Текст */
+            --text-primary: #333333;
+            --text-secondary: #6c757d;
+            --text-muted: #999999;
+            --text-light: #adb5bd;
+            --text-on-primary: #ffffff;
+            --text-link: #007bff;
+            --text-task: #000000;
+            --text-badge: #2e7d32;
+            --text-danger: #dc3545;
+            --text-success: #28a745;
+            --text-warning: #856404;
+            --text-update-desc: #6d5200;
+            --text-chat-assistant: #1f2d3d;
+            --text-muted-light: #bbb;
+            --text-dim: #888;
+            --text-medium: #666;
+            --text-badge-count: #444;
+
+            /* Границы */
+            --border-color: #dee2e6;
+            --border-light: #e0e0e0;
+            --border-input: #ced4da;
+            --border-card: #e0e0e0;
+            --border-hover: #66bb6a;
+            --border-focus: #1976D2;
+            --border-update: #ffc107;
+            --border-textarea: #ccc;
+            --border-control-hover: #999;
+
+            /* Акценты */
+            --accent-primary: #007bff;
+            --accent-primary-hover: #0056b3;
+            --accent-success: #28a745;
+            --accent-success-hover: #218838;
+            --accent-danger: #dc3545;
+            --accent-danger-hover: #c82333;
+            --accent-warning: #ff9800;
+            --accent-warning-hover: #e68900;
+            --accent-info: #2196F3;
+            --accent-error: #f44336;
+            --accent-toggle: #27ae60;
+            --accent-progress: #4CAF50;
+            --accent-progress-hover: #388E3C;
+
+            /* Тени */
+            --shadow-card: 0 2px 10px rgba(0,0,0,0.1);
+            --shadow-banner: 0 4px 20px rgba(0,0,0,0.15);
+            --shadow-hover: 0 1px 4px rgba(76,175,80,0.15);
+
+            /* Скругления */
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 20px;
+            --radius-full: 50%;
+        }
+
+        /* ========== Тёмная тема ========== */
+        [data-theme="dark"] {
+            --bg-body: #0d1117;
+            --bg-card: #161b22;
+            --bg-sidebar: #161b22;
+            --bg-input: #0d1117;
+            --bg-table-header: #21262d;
+            --bg-table-stripe: #161b22;
+            --bg-hover: #1c2128;
+            --bg-active: #1a3a5c;
+            --bg-progress: #30363d;
+            --bg-badge: #1a3a2a;
+            --bg-chat-user: #1f6feb;
+            --bg-chat-assistant: #1c2128;
+            --bg-update: #2d2a1a;
+            --bg-warning: #2d2a1a;
+            --bg-danger-light: #2d1a1a;
+            --bg-mapping: #1c2128;
+            --bg-task-group: #1c2128;
+            --bg-code: #161b22;
+            --bg-attached: #0d2818;
+            --bg-modal-overlay: rgba(0,0,0,0.8);
+            --bg-deepseek-warning: #2d2a1a;
+            --bg-btn-later: #21262d;
+            --bg-badge-count: #30363d;
+
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --text-light: #484f58;
+            --text-on-primary: #ffffff;
+            --text-link: #58a6ff;
+            --text-task: #e6edf3;
+            --text-badge: #7ee787;
+            --text-danger: #f85149;
+            --text-success: #56d364;
+            --text-warning: #d29922;
+            --text-update-desc: #bb9a3a;
+            --text-chat-assistant: #e6edf3;
+            --text-muted-light: #484f58;
+            --text-dim: #6e7681;
+            --text-medium: #8b949e;
+            --text-badge-count: #8b949e;
+
+            --border-color: #30363d;
+            --border-light: #21262d;
+            --border-input: #30363d;
+            --border-card: #30363d;
+            --border-hover: #58a6ff;
+            --border-focus: #58a6ff;
+            --border-update: #d29922;
+            --border-textarea: #30363d;
+            --border-control-hover: #8b949e;
+
+            --accent-primary: #58a6ff;
+            --accent-primary-hover: #79c0ff;
+            --accent-success: #3fb950;
+            --accent-success-hover: #56d364;
+            --accent-danger: #f85149;
+            --accent-danger-hover: #ff6b63;
+            --accent-warning: #d29922;
+            --accent-warning-hover: #e3b341;
+            --accent-info: #58a6ff;
+            --accent-error: #f85149;
+            --accent-toggle: #3fb950;
+            --accent-progress: #3fb950;
+            --accent-progress-hover: #56d364;
+
+            --shadow-card: 0 2px 10px rgba(0,0,0,0.3);
+            --shadow-banner: 0 4px 20px rgba(0,0,0,0.5);
+            --shadow-hover: 0 1px 4px rgba(88,166,255,0.2);
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: var(--bg-body); padding: 20px; color: var(--text-primary); }
+        h1 { text-align: center; margin-bottom: 20px; color: var(--text-primary); }
 
         /* Две колонки */
         .grid-2col {
@@ -17,9 +176,9 @@
             align-items: start;
         }
         .left-panel, .right-panel {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
             overflow: hidden;
         }
         .left-panel { display: flex; flex-direction: column; }
@@ -31,15 +190,15 @@
         /* Вертикальный сайдбар вкладок */
         .sidebar-tabs {
             width: 180px; min-width: 180px;
-            background: #f8f9fa;
-            border-right: 1px solid #dee2e6;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
             display: flex; flex-direction: column;
             padding: 12px 0; overflow-y: auto;
         }
         .sidebar-group { margin-bottom: 4px; }
         .sidebar-group-label {
             padding: 10px 16px 4px;
-            font-size: 10px; color: #adb5bd;
+            font-size: 10px; color: var(--text-light);
             font-weight: 700; text-transform: uppercase;
             letter-spacing: 0.8px; user-select: none;
         }
@@ -49,71 +208,71 @@
             padding: 10px 16px; font-size: 14px;
             background: none; border: none; cursor: pointer;
             transition: 0.12s; font-weight: 500;
-            color: #6c757d; text-align: left;
+            color: var(--text-secondary); text-align: left;
             border-left: 3px solid transparent;
         }
-        .tab-btn:hover { background: #e9ecef; color: #495057; }
+        .tab-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
         .tab-btn.active {
-            background: white; color: #007bff;
-            border-left-color: #007bff; font-weight: 600;
+            background: var(--bg-card); color: var(--accent-primary);
+            border-left-color: var(--accent-primary); font-weight: 600;
         }
         .tab-pane { display: none; padding: 25px; }
         .tab-pane.active { display: block; }
-        h2, h3 { margin-top: 0; color: #333; }
+        h2, h3 { margin-top: 0; color: var(--text-primary); }
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 6px; font-weight: 500; }
-        input, select, button { padding: 10px; border-radius: 6px; border: 1px solid #ced4da; font-size: 14px; }
+        input, select, button { padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-input); font-size: 14px; }
         input, select { width: 100%; }
-        button { background: #007bff; color: white; border: none; cursor: pointer; transition: 0.2s; }
-        button:hover { background: #0056b3; }
-        .btn-secondary { background: #6c757d; }
-        .btn-secondary:hover { background: #5a6268; }
-        .btn-danger { background: #dc3545; }
-        .btn-danger:hover { background: #c82333; }
-        .btn-success { background: #28a745; }
-        .btn-success:hover { background: #218838; }
+        button { background: var(--accent-primary); color: var(--text-on-primary); border: none; cursor: pointer; transition: 0.2s; }
+        button:hover { background: var(--accent-primary-hover); }
+        .btn-secondary { background: var(--text-secondary); }
+        .btn-secondary:hover { background: var(--text-muted); }
+        .btn-danger { background: var(--accent-danger); }
+        .btn-danger:hover { background: var(--accent-danger-hover); }
+        .btn-success { background: var(--accent-success); }
+        .btn-success:hover { background: var(--accent-success-hover); }
         .btn-sm { padding: 5px 10px; font-size: 12px; margin: 2px; }
-        .stats { background: #e9ecef; padding: 15px; border-radius: 8px; margin: 20px 0; }
+        .stats { background: var(--bg-hover); padding: 15px; border-radius: var(--radius-md); margin: 20px 0; }
         .table-wrapper { overflow-x: auto; margin-top: 20px; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #dee2e6; padding: 8px; text-align: left; vertical-align: top; }
-        th { background: #f1f1f1; cursor: pointer; user-select: none; }
+        th, td { border: 1px solid var(--border-color); padding: 8px; text-align: left; vertical-align: top; }
+        th { background: var(--bg-table-header); cursor: pointer; user-select: none; }
         #deptsTable th::after, #articlesTable th::after { content: " ↕️"; font-size: 10px; opacity: 0.5; }
         #deptsTable th.sorted-asc::after, #articlesTable th.sorted-asc::after { content: " ↑"; opacity: 1; }
         #deptsTable th.sorted-desc::after, #articlesTable th.sorted-desc::after { content: " ↓"; opacity: 1; }
         .flex-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
         .flex-row .form-group { flex: 1; min-width: 150px; margin-bottom: 0; }
-        .error { color: #dc3545; }
-        .success { color: #28a745; }
-        .message { margin-top: 15px; padding: 10px; border-radius: 6px; }
-        .mapping-row { margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; background: #fafafa; }
-        .mapping-header { font-weight: bold; margin-bottom: 8px; background: #e9ecef; padding: 5px; }
+        .error { color: var(--accent-danger); }
+        .success { color: var(--accent-success); }
+        .message { margin-top: 15px; padding: 10px; border-radius: var(--radius-sm); }
+        .mapping-row { margin-bottom: 15px; padding: 10px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); background: var(--bg-mapping); }
+        .mapping-header { font-weight: bold; margin-bottom: 8px; background: var(--bg-hover); padding: 5px; }
         .mapping-fields { display: flex; gap: 15px; flex-wrap: wrap; }
         .mapping-fields > div { flex: 1; min-width: 150px; }
-        .remove-mapping-btn { background: #dc3545; color: white; border: none; padding: 5px 10px; cursor: pointer; margin-top: 5px; }
+        .remove-mapping-btn { background: var(--accent-danger); color: var(--text-on-primary); border: none; padding: 5px 10px; cursor: pointer; margin-top: 5px; }
         .preview-table { border-collapse: collapse; width: 100%; font-size: 12px; }
-        .preview-table th, .preview-table td { border: 1px solid #ddd; padding: 6px; text-align: left; white-space: nowrap; }
-        .preview-table th { background-color: #f2f2f2; position: sticky; top: 0; }
+        .preview-table th, .preview-table td { border: 1px solid var(--border-light); padding: 6px; text-align: left; white-space: nowrap; }
+        .preview-table th { background-color: var(--bg-table-header); position: sticky; top: 0; }
 
         /* Стили блокнота задач */
-        .task-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #dee2e6; }
-        .task-tab { background: none; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; color: #555; border-bottom: 2px solid transparent; }
-        .task-tab.active { color: #007bff; border-bottom-color: #007bff; background: none; }
+        .task-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); }
+        .task-tab { background: none; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; color: var(--text-secondary); border-bottom: 2px solid transparent; }
+        .task-tab.active { color: var(--accent-primary); border-bottom-color: var(--accent-primary); background: none; }
         .task-list { display: none; margin-top: 15px; }
         .task-list.active { display: block; }
-        .task-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px; border-bottom: 1px solid #eee; }
+        .task-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px; border-bottom: 1px solid var(--border-light); }
         .task-checkbox { width: 18px; height: 18px; margin: 2px 10px 0 0; flex-shrink: 0; }
-        .task-text { flex: 1; word-break: break-word; color: #000; font-size: 14px; white-space: pre-wrap; }
+        .task-text { flex: 1; word-break: break-word; color: var(--text-task); font-size: 14px; white-space: pre-wrap; }
         .task-actions button { margin-left: 5px; padding: 2px 6px; }
-        .cancelled-comment { font-size: 12px; color: #999; margin-left: 30px; }
+        .cancelled-comment { font-size: 12px; color: var(--text-muted); margin-left: 30px; }
         .task-group-header {
             font-size: 13px;
             font-weight: 700;
-            color: #555;
+            color: var(--text-secondary);
             padding: 8px 4px 4px 4px;
             margin-top: 6px;
-            border-bottom: 1px solid #e0e0e0;
-            background: #f5f5f5;
+            border-bottom: 1px solid var(--border-light);
+            background: var(--bg-task-group);
             border-radius: 4px 4px 0 0;
             cursor: pointer;
             user-select: none;
@@ -124,7 +283,7 @@
         .task-group-header:first-child { margin-top: 0; }
         .task-group-header .toggle-icon {
             font-size: 10px;
-            color: #999;
+            color: var(--text-muted);
             transition: transform 0.15s;
         }
         .task-group-header.collapsed .toggle-icon {
@@ -132,21 +291,21 @@
         }
         .task-group-header.collapsed {
             border-radius: 4px;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid var(--border-light);
         }
         .task-group-content {
             overflow: hidden;
             transition: max-height 0.2s ease;
         }
         .task-group-header .group-title-separator {
-            color: #bbb;
+            color: var(--text-muted-light);
             margin: 0 8px;
             font-weight: 400;
         }
         .task-group-header .task-count-badge {
             display: inline-block;
-            background: #d0d0d0;
-            color: #444;
+            background: var(--bg-badge-count);
+            color: var(--text-badge-count);
             font-size: 11px;
             font-weight: 700;
             padding: 1px 9px;
@@ -156,15 +315,15 @@
         .task-group-empty {
             text-align: center;
             padding: 30px 0;
-            color: #bbb;
+            color: var(--text-muted-light);
             font-size: 13px;
         }
         .task-group-controls select:hover,
-        .task-group-controls input:hover { border-color: #999; }
+        .task-group-controls input:hover { border-color: var(--border-control-hover); }
         .add-task-row { display: flex; gap: 10px; margin-bottom: 15px; align-items: flex-start; }
         .add-task-row textarea { flex: 1; resize: vertical; }
         .add-task-row button { width: auto; }
-        .task-edit-textarea { width: 100%; padding: 5px; font-family: inherit; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; resize: vertical; }
+        .task-edit-textarea { width: 100%; padding: 5px; font-family: inherit; font-size: 14px; border: 1px solid var(--border-textarea); border-radius: 4px; resize: vertical; }
 
         /* Стили для сворачиваемых блоков */
         details { margin-bottom: 20px; }
@@ -176,8 +335,8 @@
             gap: 6px;
             padding: 7px 8px;
             margin: 2px 0;
-            background: white;
-            border: 1px solid #e0e0e0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
             border-radius: 5px;
             cursor: grab;
             font-size: 13px;
@@ -185,20 +344,20 @@
             transition: box-shadow 0.12s, border-color 0.12s, opacity 0.12s;
         }
         .sortable-row-item:hover {
-            border-color: #66bb6a;
-            box-shadow: 0 1px 4px rgba(76,175,80,0.15);
+            border-color: var(--border-hover);
+            box-shadow: var(--shadow-hover);
         }
         .sortable-row-item.dragging {
             opacity: 0.4;
-            border-color: #1976D2;
+            border-color: var(--border-focus);
             border-style: dashed;
         }
         .sortable-row-item.drag-over {
-            border-top: 3px solid #1976D2;
+            border-top: 3px solid var(--border-focus);
             border-radius: 0;
         }
         .sortable-row-item .drag-handle {
-            color: #bbb;
+            color: var(--text-muted-light);
             font-size: 16px;
             cursor: grab;
             flex-shrink: 0;
@@ -211,8 +370,8 @@
             min-width: 20px;
             height: 20px;
             border-radius: 50%;
-            background: #e8f5e9;
-            color: #2e7d32;
+            background: var(--bg-badge);
+            color: var(--text-badge);
             font-size: 11px;
             font-weight: 700;
             flex-shrink: 0;
@@ -226,7 +385,7 @@
         }
         .sortable-row-item .row-remove-btn {
             cursor: pointer;
-            color: #ccc;
+            color: var(--text-muted-light);
             font-size: 14px;
             flex-shrink: 0;
             padding: 2px 4px;
@@ -234,28 +393,28 @@
             transition: color 0.12s, background 0.12s;
         }
         .sortable-row-item .row-remove-btn:hover {
-            color: #e53935;
-            background: #ffebee;
+            color: var(--accent-danger);
+            background: var(--bg-danger-light);
         }
-        summary { cursor: pointer; font-weight: bold; font-size: 1.2em; margin-bottom: 10px; color: #333; }
-        summary:hover { color: #007bff; }
+        summary { cursor: pointer; font-weight: bold; font-size: 1.2em; margin-bottom: 10px; color: var(--text-primary); }
+        summary:hover { color: var(--text-link); }
 
         /* Стили для DeepSeek чата */
         .chat-message { display: flex; flex-direction: column; max-width: 85%; align-self: flex-start; }
         .chat-message.user { align-self: flex-end; }
         .message-bubble { padding: 10px 14px; border-radius: 18px; line-height: 1.4; font-size: 14px; }
-        .user .message-bubble { background: #0066ff; color: white; border-bottom-right-radius: 4px; }
-        .assistant .message-bubble { background: #f1f3f5; color: #1f2d3d; border-bottom-left-radius: 4px; }
-        .assistant .message-bubble pre { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 12px; overflow-x: auto; font-size: 13px; position: relative; }
+        .user .message-bubble { background: var(--bg-chat-user); color: var(--text-on-primary); border-bottom-right-radius: 4px; }
+        .assistant .message-bubble { background: var(--bg-chat-assistant); color: var(--text-chat-assistant); border-bottom-left-radius: 4px; }
+        .assistant .message-bubble pre { background: var(--bg-code); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; overflow-x: auto; font-size: 13px; position: relative; }
         .assistant .message-bubble code { font-family: 'SF Mono', 'Fira Code', monospace; background: none; padding: 0; }
         .code-block-wrapper { position: relative; margin: 12px 0; }
         .copy-code-btn {
     position: absolute;
     top: 8px;
     right: 8px;
-    background: #ffffff;
-    color: #333333;
-    border: 1px solid #cccccc;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-textarea);
     border-radius: 4px;
     padding: 4px 8px;
     font-size: 12px;
@@ -267,16 +426,16 @@
 }
 .copy-code-btn:hover {
     opacity: 1;
-    background: #f0f0f0;
-    color: #000000;
+    background: var(--bg-hover);
+    color: var(--text-primary);
 }
-        .typing-indicator { font-style: italic; color: gray; }
+        .typing-indicator { font-style: italic; color: var(--text-muted); }
         .conversation-item { padding: 10px; border-radius: 8px; cursor: pointer; margin-bottom: 4px; transition: background 0.2s; display: flex; justify-content: space-between; align-items: center; }
-        .conversation-item:hover { background: #e9ecef; }
-        .conversation-item.active { background: #e0e7ff; font-weight: 500; }
+        .conversation-item:hover { background: var(--bg-hover); }
+        .conversation-item.active { background: var(--bg-active); font-weight: 500; }
         .conv-info { flex: 1; overflow: hidden; }
         .conv-title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .conv-date { font-size: 10px; color: #888; }
+        .conv-date { font-size: 10px; color: var(--text-dim); }
         .conv-actions { display: flex; gap: 6px; opacity: 0.6; }
         .conversation-item:hover .conv-actions { opacity: 1; }
         .conv-actions button { background: none; border: none; cursor: pointer; font-size: 12px; padding: 0 4px; }
@@ -288,8 +447,8 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: #e9ecef;
-            border-radius: 20px;
+            background: var(--bg-hover);
+            border-radius: var(--radius-xl);
             padding: 4px 10px;
             font-size: 12px;
             margin-bottom: 8px;
@@ -302,7 +461,7 @@
             padding: 0 4px;
         }
         /* Toggle slider DeepSeek */
-        #deepseekToggle:checked + span { background: #27ae60 !important; }
+        #deepseekToggle:checked + span { background: var(--accent-toggle) !important; }
         #deepseekToggle:checked + span + span { transform: translateX(20px); }
         #deepseekToggleLabel:hover span { opacity: 0.9; }
         /* Скрытие контента при показе модалки логина */
@@ -315,11 +474,11 @@
             position: fixed;
             bottom: 50px;
             right: 20px;
-            background: #fff3cd;
-            border: 1px solid #ffc107;
-            border-radius: 12px;
+            background: var(--bg-update);
+            border: 1px solid var(--border-update);
+            border-radius: var(--radius-lg);
             padding: 16px 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            box-shadow: var(--shadow-banner);
             z-index: 9995;
             display: none;
             max-width: 380px;
@@ -332,14 +491,14 @@
         }
         #updateBanner .update-title {
             font-weight: 700;
-            color: #856404;
+            color: var(--text-warning);
             margin-bottom: 6px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
         #updateBanner .update-desc {
-            color: #6d5200;
+            color: var(--text-update-desc);
             margin-bottom: 12px;
             font-size: 13px;
             line-height: 1.4;
@@ -359,25 +518,25 @@
             transition: all 0.15s;
         }
         #updateBanner .btn-update-now {
-            background: #ff9800;
-            color: white;
+            background: var(--accent-warning);
+            color: var(--text-on-primary);
         }
         #updateBanner .btn-update-now:hover {
-            background: #e68900;
+            background: var(--accent-warning-hover);
         }
         #updateBanner .btn-update-later {
-            background: #f5f5f5;
-            color: #666;
+            background: var(--bg-btn-later);
+            color: var(--text-medium);
         }
         #updateBanner .btn-update-later:hover {
-            background: #e0e0e0;
+            background: var(--border-light);
         }
         #updateBanner .btn-restart {
-            background: #4CAF50;
-            color: white;
+            background: var(--accent-progress);
+            color: var(--text-on-primary);
         }
         #updateBanner .btn-restart:hover {
-            background: #388E3C;
+            background: var(--accent-progress-hover);
         }
         #updateProgress, .constructor-progress {
             margin-top: 10px;
@@ -387,14 +546,14 @@
         .constructor-progress .progress-bar-bg {
             width: 100%;
             height: 6px;
-            background: #e0e0e0;
+            background: var(--bg-progress);
             border-radius: 3px;
             overflow: hidden;
         }
         #updateProgress .progress-bar-fill,
         .constructor-progress .progress-bar-fill {
             height: 100%;
-            background: #4CAF50;
+            background: var(--accent-progress);
             border-radius: 3px;
             width: 0%;
             transition: width 0.3s ease;
@@ -402,12 +561,12 @@
         #updateProgress .progress-text,
         .constructor-progress .progress-text {
             font-size: 12px;
-            color: #666;
+            color: var(--text-medium);
             margin-top: 4px;
         }
         .constructor-progress .progress-label {
             font-size: 13px;
-            color: #555;
+            color: var(--text-secondary);
             margin-bottom: 4px;
         }
 
@@ -416,7 +575,7 @@
             bottom: 10px;
             right: 20px;
             font-size: 11px;
-            color: #999;
+            color: var(--text-muted);
             z-index: 9994;
             cursor: pointer;
             display: flex;
@@ -426,17 +585,17 @@
             user-select: none;
         }
         #versionIndicator:hover {
-            color: #666;
+            color: var(--text-medium);
         }
         #versionIndicator .version-dot {
             display: inline-block;
             width: 6px;
             height: 6px;
-            border-radius: 50%;
-            background: #4CAF50;
+            border-radius: var(--radius-full);
+            background: var(--accent-progress);
         }
         #versionIndicator .version-dot.update-available {
-            background: #ff9800;
+            background: var(--accent-warning);
             animation: pulse 1.5s infinite;
         }
         @keyframes pulse {
@@ -444,12 +603,136 @@
             50% { opacity: 0.4; }
         }
         #versionIndicator .version-dot.updating {
-            background: #2196F3;
+            background: var(--accent-info);
             animation: pulse 1s infinite;
         }
         #versionIndicator .version-dot.error {
-            background: #f44336;
+            background: var(--accent-error);
         }
+
+        /* ========== ВСПОМОГАТЕЛЬНЫЕ КЛАССЫ ДЛЯ INLINE-СТИЛЕЙ ========== */
+        /* Модальные окна */
+        .modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg-modal-overlay); z-index:9999; display:none; justify-content:center; align-items:center; }
+        .modal-content { background:var(--bg-card); border-radius:var(--radius-lg); box-shadow:var(--shadow-card); }
+        .modal-header { padding:16px 20px; border-bottom:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center; }
+        .modal-body { padding:16px 20px; overflow-y:auto; }
+        .modal-footer { padding:12px 20px; border-top:1px solid var(--border-light); display:flex; justify-content:flex-end; gap:10px; }
+        .modal-close-btn { background:none; border:none; font-size:22px; cursor:pointer; color:var(--text-muted); }
+
+        /* Кнопки действия */
+        .btn-chat-primary { background:var(--bg-chat-user); color:var(--text-on-primary); border:none; border-radius:var(--radius-md); padding:8px 16px; cursor:pointer; }
+        .btn-logout { background:var(--accent-danger); color:var(--text-on-primary); border:none; border-radius:var(--radius-sm); cursor:pointer; font-size:13px; padding:6px 14px; }
+
+        /* Бейджи и индикаторы */
+        .badge-empty { text-align:center; color:var(--text-muted-light); padding:50px 0; font-size:13px; }
+        .text-muted { color:var(--text-muted) !important; }
+        .text-dim { color:var(--text-dim) !important; }
+        .text-secondary { color:var(--text-secondary) !important; }
+        .bg-card { background:var(--bg-card) !important; }
+        .bg-mapping { background:var(--bg-mapping) !important; }
+        .border-light { border:1px solid var(--border-light) !important; }
+        .border-input { border:1px solid var(--border-input) !important; }
+
+        /* Переключатель темы */
+        .theme-toggle {
+            position: fixed;
+            bottom: 35px;
+            right: 20px;
+            z-index: 9996;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-full);
+            padding: 6px;
+            cursor: pointer;
+            font-size: 18px;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-card);
+            transition: background 0.2s, box-shadow 0.2s;
+            line-height: 1;
+        }
+        .theme-toggle:hover {
+            background: var(--bg-hover);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+        }
+
+        /* ========== КЛАССЫ ДЛЯ JS-ГЕНЕРИРУЕМЫХ СТИЛЕЙ ========== */
+        /* Segmented buttons (итоги и формат) */
+        .segmented-group { display:flex; gap:0; border-radius:6px; overflow:hidden; font-size:12px; }
+        .segmented-totals { border:1px solid var(--border-update); }
+        .segmented-format { border:1px solid var(--accent-progress); }
+        .segmented-label { cursor:pointer; padding:4px 10px; transition:all 0.15s; display:flex; align-items:center; gap:3px; font-weight:500; }
+        .segmented-label.s-active { background:var(--accent-warning); color:var(--text-on-primary); font-weight:600; }
+        .segmented-label.s-inactive { background:var(--bg-task-group); color:var(--text-medium); font-weight:500; }
+        .segmented-label.s-border { border-left:1px solid var(--border-update); }
+        .segmented-format .segmented-label.s-active { background:var(--accent-progress); color:var(--text-on-primary); font-weight:600; }
+        .segmented-format .segmented-label.s-inactive { background:var(--bg-task-group); color:var(--text-medium); font-weight:500; }
+        .segmented-format .segmented-label.s-border { border-left:1px solid var(--accent-progress); }
+        .segmented-label.format-pad { padding:4px 14px; }
+
+        /* Чат — ошибка / плейсхолдер */
+        .chat-error { text-align:center; padding:40px; color:var(--accent-danger); }
+        .chat-placeholder { text-align:center; color:var(--text-muted); padding:40px; }
+
+        /* Ссылки */
+        .link-default { color:var(--text-link); text-decoration:underline; }
+
+        /* Дата в задаче */
+        .task-date-info { font-size:11px; color:var(--text-muted); margin-top:3px; }
+
+        /* Метка колонки конструктора */
+        .constructor-col-label { display:inline-flex; align-items:center; gap:4px; padding:4px 8px; background:var(--bg-hover); border-radius:4px; cursor:pointer; font-size:13px; }
+
+        /* Пустые состояния */
+        .empty-text { color:var(--text-muted); font-size:13px; }
+
+        /* Контейнер фильтра */
+        .filter-container { padding:8px; background:var(--bg-hover); border-radius:6px; }
+
+        /* Элемент списка сценариев */
+        .scenario-list-item { display:flex; gap:8px; align-items:center; padding:6px 8px; border-bottom:1px solid var(--border-light); }
+
+        /* Инлайн-обновления */
+        .update-status-warning { color:var(--text-warning); font-size:13px; }
+        .update-status-error { color:var(--accent-danger); }
+        .update-status-success { color:var(--accent-success); font-size:13px; }
+
+        /* Кнопка "Добавить как новое" */
+        .btn-add-new { background:var(--accent-info) !important; }
+
+        /* Радио-кнопки в диалоге заголовков */
+        .header-radio-label { cursor:pointer; display:inline-flex; align-items:center; justify-content:center; padding:8px 18px; border-radius:6px; font-size:14px; transition:all 0.15s; }
+        .header-radio-label.hr-active { background:var(--accent-warning); color:var(--text-on-primary); font-weight:600; }
+        .header-radio-label.hr-inactive { background:var(--bg-hover); color:var(--text-primary); font-weight:400; }
+
+        /* Разделитель */
+        .separator { color:var(--border-light); font-size:18px; user-select:none; }
+
+        /* Опция с отступом */
+        .option-indent { padding-left:20px; color:var(--accent-primary); }
+
+        /* Ячейка "нет данных" */
+        .no-data-cell { text-align:center; color:var(--text-muted); }
+
+        /* Таблица конструктора — подсветка */
+        .constructor-th-agg { background:var(--bg-attached); }
+        .constructor-th-totals { background:var(--bg-update); color:var(--text-warning); }
+        .constructor-row-totals { background:var(--bg-deepseek-warning); font-weight:700; border-top:2px solid var(--accent-warning); }
+        .constructor-row-even { background:var(--bg-table-stripe); }
+        .constructor-td-agg { font-weight:600; color:var(--text-badge); background:var(--bg-badge); }
+        .constructor-td-group-first { font-weight:600; vertical-align:top; color:var(--text-primary); }
+        .constructor-td-group-repeat { font-weight:400; vertical-align:top; color:var(--text-muted-light); }
+        .constructor-td-totals { font-weight:700; color:var(--text-warning); }
+
+        /* Сохранённые сценарии — мета */
+        .scenario-date { font-size:11px; color:var(--text-muted); }
+        /* Кнопка "Показать ещё / Свернуть" для активных задач */
+        .btn-show-more-tasks { display:block; width:100%; margin-top:8px; padding:6px 12px; background:var(--bg-hover); color:var(--text-secondary); border:1px dashed var(--border-light); border-radius:var(--radius-sm); cursor:pointer; font-size:12px; text-align:center; transition:all 0.15s; }
+        .btn-show-more-tasks:hover { background:var(--bg-active); color:var(--accent-primary); border-color:var(--accent-primary); }
+        .active-tasks-extra { border-top:1px dashed var(--border-light); margin-top:6px; padding-top:6px; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
@@ -467,29 +750,29 @@
 </head>
 <body>
 <!-- ==================== МОДАЛКА ЛОГИНА ==================== -->
-<div id="loginOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
-    <div style="background:#fff; padding:40px; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.3); width:360px; text-align:center;">
-        <h2 style="margin-top:0; color:#333;">🔐 Вход в систему</h2>
-        <p style="color:#666; margin-bottom:20px;">Требуется аутентификация</p>
+<div id="loginOverlay" class="modal-overlay" style="z-index:9999;">
+    <div class="modal-content" style="padding:40px; width:360px; text-align:center;">
+        <h2 style="margin-top:0; color:var(--text-primary);">🔐 Вход в систему</h2>
+        <p style="color:var(--text-secondary); margin-bottom:20px;">Требуется аутентификация</p>
         <div style="margin-bottom:15px;">
-            <input type="text" id="loginUsername" placeholder="Логин" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px; box-sizing:border-box;" title="Введите логин для входа в систему">
+            <input type="text" id="loginUsername" placeholder="Логин" class="border-input" style="width:100%; padding:10px; border-radius:var(--radius-sm); font-size:14px; box-sizing:border-box;" title="Введите логин для входа в систему">
         </div>
         <div style="margin-bottom:20px;">
-            <input type="password" id="loginPassword" placeholder="Пароль" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px; box-sizing:border-box;" title="Введите пароль для входа в систему">
+            <input type="password" id="loginPassword" placeholder="Пароль" class="border-input" style="width:100%; padding:10px; border-radius:var(--radius-sm); font-size:14px; box-sizing:border-box;" title="Введите пароль для входа в систему">
         </div>
-        <div id="loginError" style="color:#e74c3c; margin-bottom:15px; display:none;"></div>
-        <button id="loginBtn" style="width:100%; padding:12px; background:#3498db; color:#fff; border:none; border-radius:6px; font-size:16px; cursor:pointer;" title="Выполнить вход в систему">Войти</button>
+        <div id="loginError" style="color:var(--accent-danger); margin-bottom:15px; display:none;"></div>
+        <button id="loginBtn" style="width:100%; padding:12px; background:var(--accent-primary); color:var(--text-on-primary); border:none; border-radius:var(--radius-sm); font-size:16px; cursor:pointer;" title="Выполнить вход в систему">Войти</button>
     </div>
 </div>
 
 <!-- ========== МОДАЛКА ПРЕДУПРЕЖДЕНИЯ БЕЗОПАСНОСТИ DEEPSEEK ========== -->
-<div id="deepseekWarningOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9998; justify-content:center; align-items:center;">
-    <div style="background:#fff; padding:40px; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.3); width:440px; text-align:center;">
+<div id="deepseekWarningOverlay" class="modal-overlay" style="z-index:9998;">
+    <div class="modal-content" style="padding:40px; width:440px; text-align:center;">
         <div style="font-size:48px; margin-bottom:15px;">⚠️</div>
-        <h2 style="margin-top:0; color:#c0392b;">Предупреждение безопасности</h2>
-        <div style="background:#fef9e7; border:1px solid #f9e79f; border-radius:8px; padding:16px; margin:20px 0; text-align:left;">
-            <p style="margin:0 0 10px 0; color:#7d6608; font-weight:600;">🔒 Не загружайте конфиденциальные документы в чат!</p>
-            <ul style="margin:0; padding-left:20px; color:#7d6608; font-size:14px; line-height:1.6;">
+        <h2 style="margin-top:0; color:var(--accent-danger);">Предупреждение безопасности</h2>
+        <div style="background:var(--bg-deepseek-warning); border:1px solid var(--border-update); border-radius:var(--radius-md); padding:16px; margin:20px 0; text-align:left;">
+            <p style="margin:0 0 10px 0; color:var(--text-warning); font-weight:600;">🔒 Не загружайте конфиденциальные документы в чат!</p>
+            <ul style="margin:0; padding-left:20px; color:var(--text-warning); font-size:14px; line-height:1.6;">
                 <li>Данные отправляются на внешний сервер DeepSeek (Китай)</li>
                 <li>Не передавайте персональные данные, пароли, коммерческую тайну</li>
                 <li>Чат не предназначен для работы с документами, содержащими государственную тайну</li>
@@ -497,27 +780,27 @@
             </ul>
         </div>
         <div style="display:flex; gap:10px; justify-content:center;">
-            <button id="deepseekWarningCancel" style="padding:12px 24px; background:#95a5a6; color:#fff; border:none; border-radius:6px; font-size:15px; cursor:pointer;" title="Отказаться от включения DeepSeek">Отмена</button>
-            <button id="deepseekWarningConfirm" style="padding:12px 24px; background:#e67e22; color:#fff; border:none; border-radius:6px; font-size:15px; cursor:pointer;" title="Подтвердить включение DeepSeek (данные будут отправлены на внешний сервер)">✅ Подтверждаю</button>
+            <button id="deepseekWarningCancel" class="btn-secondary" style="padding:12px 24px; font-size:15px;" title="Отказаться от включения DeepSeek">Отмена</button>
+            <button id="deepseekWarningConfirm" style="padding:12px 24px; background:var(--accent-warning); color:var(--text-on-primary); border:none; border-radius:var(--radius-sm); font-size:15px; cursor:pointer;" title="Подтвердить включение DeepSeek (данные будут отправлены на внешний сервер)">✅ Подтверждаю</button>
         </div>
     </div>
 </div>
 
 <!-- ========== МОДАЛКА ОПРЕДЕЛЕНИЯ ЗАГОЛОВКОВ ДЛЯ КОНСТРУКТОРА ========== -->
-<div id="constructorHeaderDialog" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9997; justify-content:center; align-items:center;">
-    <div style="background:#fff; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.3); width:90%; max-width:900px; max-height:85vh; display:flex; flex-direction:column;">
-        <div style="padding:16px 20px; border-bottom:1px solid #e0e0e0; display:flex; justify-content:space-between; align-items:center;">
+<div id="constructorHeaderDialog" class="modal-overlay" style="z-index:9997;">
+    <div class="modal-content" style="width:90%; max-width:900px; max-height:85vh; display:flex; flex-direction:column;">
+        <div class="modal-header">
             <h3 style="margin:0;">📋 Определение заголовков</h3>
-            <button onclick="closeHeaderDialog()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#999;" title="Закрыть">✖</button>
+            <button onclick="closeHeaderDialog()" class="modal-close-btn" title="Закрыть">✖</button>
         </div>
-        <div style="padding:16px 20px; overflow-y:auto; flex:1;">
-            <p style="margin-top:0; color:#555; font-size:14px;">
+        <div class="modal-body" style="flex:1;">
+            <p style="margin-top:0; color:var(--text-secondary); font-size:14px;">
                 Автоматическое определение не дало точного результата. Выберите строку, в которой находятся заголовки колонок.
             </p>
-            <div id="headerDialogInfo" style="background:#e3f2fd; border-radius:8px; padding:10px 14px; margin-bottom:14px; font-size:13px; display:flex; justify-content:space-between; align-items:center;">
+            <div id="headerDialogInfo" style="background:var(--bg-attached); border-radius:var(--radius-md); padding:10px 14px; margin-bottom:14px; font-size:13px; display:flex; justify-content:space-between; align-items:center;">
                 <span id="headerDialogAutoInfo">⏳ Определение...</span>
             </div>
-            <div style="overflow-x:auto; border:1px solid #ddd; border-radius:8px; max-height:350px; overflow-y:auto;">
+            <div class="border-input" style="overflow-x:auto; border-radius:var(--radius-md); max-height:350px; overflow-y:auto;">
                 <table id="headerPreviewTable" class="preview-table" style="font-size:12px; min-width:100%;">
                     <thead>
                         <tr id="headerPreviewHeader"><th style="min-width:60px;">Строка</th><th>Данные</th></tr>
@@ -525,19 +808,19 @@
                     <tbody id="headerPreviewBody"></tbody>
                 </table>
             </div>
-            <div style="margin-top:16px; padding:12px 16px; background:#f9f9f9; border-radius:8px;">
+            <div style="margin-top:16px; padding:12px 16px; background:var(--bg-mapping); border-radius:var(--radius-md);">
                 <label style="font-weight:600; display:block; margin-bottom:8px;">📍 Строка с заголовками:</label>
                 <div id="headerRowSelector" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
             </div>
-            <div style="margin-top:12px; padding:12px 16px; background:#f9f9f9; border-radius:8px;">
+            <div style="margin-top:12px; padding:12px 16px; background:var(--bg-mapping); border-radius:var(--radius-md);">
                 <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:14px;">
                     <input type="checkbox" id="constructorTransposeCheckbox">
                     <span style="font-weight:600;">🔄 Транспонировать данные</span>
-                    <span style="color:#888; font-size:12px;">(строки станут колонками, колонки — строками)</span>
+                    <span style="color:var(--text-dim); font-size:12px;">(строки станут колонками, колонки — строками)</span>
                 </label>
             </div>
         </div>
-        <div style="padding:12px 20px; border-top:1px solid #e0e0e0; display:flex; justify-content:flex-end; gap:10px;">
+        <div class="modal-footer">
             <button onclick="closeHeaderDialog()" class="btn-secondary" style="padding:8px 20px;">✖ Отмена</button>
             <button id="headerDialogConfirmBtn" class="btn-success" style="padding:8px 24px;" onclick="confirmHeaderDialog()">✅ Подтвердить</button>
         </div>
@@ -548,7 +831,7 @@
 <div id="appContent">
 <h1 style="display:inline-block;">📋 Личный помощник</h1>
 <span id="logoutBtn" style="display:none; float:right; margin-top:10px;">
-    <button onclick="_auth.logout()" style="padding:6px 14px; background:#e74c3c; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:13px;" title="Выйти из учётной записи">🚪 Выйти</button>
+    <button onclick="_auth.logout()" class="btn-logout" title="Выйти из учётной записи">🚪 Выйти</button>
 </span>
 <div class="grid-2col">
     <!-- Левая панель: Лимиты Т5 + DeepSeek -->
@@ -597,18 +880,18 @@
                     <p><strong>🏢 Уникальных подразделений:</strong> <span id="uniqueDepts">0</span></p>
                     <p><strong>📄 Всего лимитов:</strong> <span id="totalLimits">0</span></p>
                     <p><strong>💰 Сумма лимитов:</strong> <span id="sumLimits">0.00</span> руб.</p>
-                    <div id="unknownInfo" style="margin-top:15px; padding:10px; background:#fff3cd; border-radius:6px; display:none;">
+                    <div id="unknownInfo" style="margin-top:15px; padding:10px; background:var(--bg-update); border-radius:var(--radius-sm); display:none;">
                         <p><strong>⚠️ Внимание! Обнаружены неизвестные элементы:</strong></p>
                         <div id="unknownDeptsList" style="margin-bottom:15px;"></div>
                         <div id="unknownArticlesList" style="margin-bottom:15px;"></div>
-                        <div id="ignoredDeptsList" style="margin-top:10px; font-size:12px; color:gray;"></div>
+                        <div id="ignoredDeptsList" style="margin-top:10px; font-size:12px; color:var(--text-muted);"></div>
                         <p style="font-size:12px;">Нажмите «Добавить» рядом с элементом, чтобы внести его в справочник.</p>
                     </div>
                     <div style="margin-top:20px;"><button type="button" id="previewBtn" class="btn-secondary" title="Показать предпросмотр первых 50 строк результата">👁 Предпросмотр (50 строк)</button></div>
                     <div id="previewContainer" style="margin-top:20px; overflow-x:auto; display:none;">
                         <h4>Предпросмотр результата</h4>
                         <table id="previewTable" class="preview-table"><thead><tr id="previewHeader"></tr></thead><tbody id="previewBody"></tbody></table>
-                        <p id="previewTotalRows" style="margin-top:10px; font-size:12px; color:gray;"></p>
+                        <p id="previewTotalRows" style="margin-top:10px; font-size:12px; color:var(--text-muted);"></p>
                     </div>
                 </div>
                 <div id="convertMessage"></div>
@@ -627,7 +910,7 @@
                 </div>
                 <div id="mappingEditor" style="margin-top:20px;"><p>Загрузите файл-образец, чтобы получить список колонок. Задайте бюджет, статью, период.</p></div>
                 <div class="form-group">
-                    <button type="button" id="saveProfileBtn" style="background:#28a745;" title="Сохранить текущие настройки маппинга как профиль">💾 Сохранить профиль</button>
+                    <button type="button" id="saveProfileBtn" class="btn-success" title="Сохранить текущие настройки маппинга как профиль">💾 Сохранить профиль</button>
                     <button type="button" id="clearMappingBtn" class="btn-secondary" title="Очистить все настройки маппинга">🗑 Очистить</button>
                 </div>
                 <div id="profileMessage"></div>
@@ -669,11 +952,11 @@
                 </div>
 
                 <!-- Управление сценариями (наверху, перед загрузкой файла) -->
-                <div id="constructorScenarioPanel" style="display:none; margin-bottom:15px; padding:15px; background:#f0f8ff; border:1px solid #b8d4f0; border-radius:8px;">
+                <div id="constructorScenarioPanel" style="display:none; margin-bottom:15px; padding:15px; background:var(--bg-attached); border:1px solid var(--accent-info); border-radius:var(--radius-md);">
                     <div id="constructorScenarioSave" style="display:none;">
                         <div style="display:flex; gap:8px; align-items:center;">
                             <label style="font-weight:600;">💾 Имя сценария:</label>
-                            <input type="text" id="constructorScenarioName" placeholder="Введите название..." style="flex:1; padding:6px 10px; border:1px solid #ccc; border-radius:6px;" title="Введите название для сохранения текущего сценария">
+                            <input type="text" id="constructorScenarioName" placeholder="Введите название..." class="bg-card border-input" style="flex:1; padding:6px 10px; border-radius:var(--radius-sm); color:var(--text-primary);" title="Введите название для сохранения текущего сценария">
                             <button id="constructorScenarioSaveConfirm" class="btn-success btn-sm" title="Сохранить сценарий с указанным именем">✅ Сохранить</button>
                             <button id="constructorScenarioSaveCancel" class="btn-secondary btn-sm" title="Отменить сохранение сценария">✖ Отмена</button>
                         </div>
@@ -726,11 +1009,11 @@
                         <div class="form-group" style="margin-top:10px;">
                             <label>Отображаемые колонки</label>
                             <div style="display:flex; gap:6px; margin-bottom:6px;">
-                                <input type="text" id="constructorColumnSearch" placeholder="🔍 Поиск колонок..." style="flex:1; padding:4px 8px; border:1px solid #ccc; border-radius:6px; font-size:13px;" title="Введите текст для поиска по названиям колонок">
+                                <input type="text" id="constructorColumnSearch" placeholder="🔍 Поиск колонок..." class="bg-card border-input" style="flex:1; padding:4px 8px; border-radius:var(--radius-sm); font-size:13px; color:var(--text-primary);" title="Введите текст для поиска по названиям колонок">
                                 <button id="constructorColSelectAll" class="btn-sm btn-secondary" title="Выбрать все">✅ Все</button>
                                 <button id="constructorColDeselectAll" class="btn-sm btn-secondary" title="Очистить все">❌ Ни одной</button>
                             </div>
-                            <div id="constructorColumnsList" style="display:flex; flex-wrap:wrap; gap:4px; max-height:300px; overflow-y:auto; border:1px solid #ddd; padding:8px; border-radius:6px;"></div>
+                            <div id="constructorColumnsList" class="bg-card border-input" style="display:flex; flex-wrap:wrap; gap:4px; max-height:300px; overflow-y:auto; padding:8px; border-radius:var(--radius-sm);"></div>
                         </div>
                     </details>
 
@@ -748,43 +1031,43 @@
                         <div style="margin-top:10px;">
                             <div class="flex-row">
                                 <div class="form-group" style="flex:1;">
-                                    <label>📌 Строки <span style="font-size:11px; color:#888; font-weight:400;">↕ перетащите</span></label>
-                                    <div id="constructorPivotRowsContainer" class="sortable-rows-container" style="min-height:150px; border:1px solid #d0d0d0; border-radius:6px; padding:4px; overflow-y:auto; background:#fafafa;">
-                                        <div class="sortable-rows-empty" style="text-align:center; color:#bbb; padding:50px 0; font-size:13px;">Выберите колонки из списка выше</div>
+                                    <label>📌 Строки <span style="font-size:11px; color:var(--text-dim); font-weight:400;">↕ перетащите</span></label>
+                                    <div id="constructorPivotRowsContainer" class="sortable-rows-container bg-mapping" style="min-height:150px; border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:4px; overflow-y:auto;">
+                                        <div class="sortable-rows-empty badge-empty" style="padding:50px 0;">Выберите колонки из списка выше</div>
                                     </div>
                                     <select id="constructorPivotRows" multiple style="display:none;"></select>
                                     <div style="display:flex; gap:4px; margin-top:4px; flex-wrap:wrap;">
                                         <button type="button" class="btn-sm btn-secondary" id="constructorRowsMoveUp" title="Переместить выбранное вверх">⬆</button>
                                         <button type="button" class="btn-sm btn-secondary" id="constructorRowsMoveDown" title="Переместить выбранное вниз">⬇</button>
-                                        <select id="constructorRowsAddSelect" style="flex:1; min-width:100px; padding:3px 6px; border:1px solid #ccc; border-radius:4px; font-size:12px;">
+                                        <select id="constructorRowsAddSelect" class="bg-card border-input" style="flex:1; min-width:100px; padding:3px 6px; border-radius:4px; font-size:12px; color:var(--text-primary);">
                                             <option value="">➕ Добавить строку...</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="form-group" style="flex:1;">
-                                    <label>📊 Значения <span style="font-size:11px; color:#888; font-weight:400;">↕ перетащите</span></label>
-                                    <div id="constructorPivotValuesContainer" class="sortable-rows-container" style="min-height:150px; border:1px solid #d0d0d0; border-radius:6px; padding:4px; overflow-y:auto; background:#fafafa;">
-                                        <div class="sortable-rows-empty" style="text-align:center; color:#bbb; padding:50px 0; font-size:13px;">Выберите колонки из списка выше</div>
+                                    <label>📊 Значения <span style="font-size:11px; color:var(--text-dim); font-weight:400;">↕ перетащите</span></label>
+                                    <div id="constructorPivotValuesContainer" class="sortable-rows-container bg-mapping" style="min-height:150px; border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:4px; overflow-y:auto;">
+                                        <div class="sortable-rows-empty badge-empty" style="padding:50px 0;">Выберите колонки из списка выше</div>
                                     </div>
                                     <select id="constructorPivotValues" multiple style="display:none;"></select>
                                     <div style="display:flex; gap:4px; margin-top:4px; flex-wrap:wrap;">
                                         <button type="button" class="btn-sm btn-secondary" id="constructorValuesMoveUp" title="Переместить выбранное вверх">⬆</button>
                                         <button type="button" class="btn-sm btn-secondary" id="constructorValuesMoveDown" title="Переместить выбранное вниз">⬇</button>
-                                        <select id="constructorValuesAddSelect" style="flex:1; min-width:100px; padding:3px 6px; border:1px solid #ccc; border-radius:4px; font-size:12px;">
+                                        <select id="constructorValuesAddSelect" class="bg-card border-input" style="flex:1; min-width:100px; padding:3px 6px; border-radius:4px; font-size:12px; color:var(--text-primary);">
                                             <option value="">➕ Добавить значение...</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="form-group" style="flex:1;">
-                                    <label>📋 Колонки (опц.) <span style="font-size:11px; color:#888; font-weight:400;">↕ перетащите</span></label>
-                                    <div id="constructorPivotColsContainer" class="sortable-rows-container" style="min-height:150px; border:1px solid #d0d0d0; border-radius:6px; padding:4px; overflow-y:auto; background:#fafafa;">
-                                        <div class="sortable-rows-empty" style="text-align:center; color:#bbb; padding:50px 0; font-size:13px;">Выберите колонки из списка выше</div>
+                                    <label>📋 Колонки (опц.) <span style="font-size:11px; color:var(--text-dim); font-weight:400;">↕ перетащите</span></label>
+                                    <div id="constructorPivotColsContainer" class="sortable-rows-container bg-mapping" style="min-height:150px; border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:4px; overflow-y:auto;">
+                                        <div class="sortable-rows-empty badge-empty" style="padding:50px 0;">Выберите колонки из списка выше</div>
                                     </div>
                                     <select id="constructorPivotCols" multiple style="display:none;"></select>
                                     <div style="display:flex; gap:4px; margin-top:4px; flex-wrap:wrap;">
                                         <button type="button" class="btn-sm btn-secondary" id="constructorColsMoveUp" title="Переместить выбранное вверх">⬆</button>
                                         <button type="button" class="btn-sm btn-secondary" id="constructorColsMoveDown" title="Переместить выбранное вниз">⬇</button>
-                                        <select id="constructorColsAddSelect" style="flex:1; min-width:100px; padding:3px 6px; border:1px solid #ccc; border-radius:4px; font-size:12px;">
+                                        <select id="constructorColsAddSelect" class="bg-card border-input" style="flex:1; min-width:100px; padding:3px 6px; border-radius:4px; font-size:12px; color:var(--text-primary);">
                                             <option value="">➕ Добавить колонку...</option>
                                         </select>
                                     </div>
@@ -806,38 +1089,38 @@
                                 <button id="constructorBuildPivotBtn" class="btn-success" title="Построить сводную таблицу по заданным параметрам">📊 Построить сводную</button>
 
                                 <!-- Разделитель -->
-                                <span style="color:#ddd; font-size:18px; user-select:none;">|</span>
+                                <span class="separator">|</span>
 
                                 <!-- Итого — segmented buttons (none/rows/cols/both) -->
-                                <div style="display:flex; gap:0; border-radius:6px; overflow:hidden; border:1px solid #ffe0b2; font-size:12px;">
-                                    <label id="totalsNoneLabel" style="cursor:pointer; padding:4px 10px; background:#ff9800; color:white; font-weight:600; transition:all 0.15s; display:flex; align-items:center; gap:3px;" title="Без итогов">
+                                <div class="segmented-group segmented-totals">
+                                    <label id="totalsNoneLabel" class="segmented-label s-active" title="Без итогов">
                                         <input type="radio" name="totalsMode" value="none" checked onchange="updateTotalsModeStyle()" style="display:none;">
                                         <span>🚫</span> Без итогов
                                     </label>
-                                    <label id="totalsRowsLabel" style="cursor:pointer; padding:4px 10px; background:#f5f5f5; color:#666; font-weight:500; transition:all 0.15s; display:flex; align-items:center; gap:3px; border-left:1px solid #ffe0b2;" title="Итоговая колонка справа (сумма по строкам)">
+                                    <label id="totalsRowsLabel" class="segmented-label s-inactive s-border" title="Итоговая колонка справа (сумма по строкам)">
                                         <input type="radio" name="totalsMode" value="rows" onchange="updateTotalsModeStyle()" style="display:none;">
                                         <span>📊</span> По строкам
                                     </label>
-                                    <label id="totalsColsLabel" style="cursor:pointer; padding:4px 10px; background:#f5f5f5; color:#666; font-weight:500; transition:all 0.15s; display:flex; align-items:center; gap:3px; border-left:1px solid #ffe0b2;" title="Итоговая строка снизу (сумма по столбцам)">
+                                    <label id="totalsColsLabel" class="segmented-label s-inactive s-border" title="Итоговая строка снизу (сумма по столбцам)">
                                         <input type="radio" name="totalsMode" value="cols" onchange="updateTotalsModeStyle()" style="display:none;">
                                         <span>📊</span> По столбцам
                                     </label>
-                                    <label id="totalsBothLabel" style="cursor:pointer; padding:4px 10px; background:#f5f5f5; color:#666; font-weight:500; transition:all 0.15s; display:flex; align-items:center; gap:3px; border-left:1px solid #ffe0b2;" title="Итоговая строка и итоговая колонка">
+                                    <label id="totalsBothLabel" class="segmented-label s-inactive s-border" title="Итоговая строка и итоговая колонка">
                                         <input type="radio" name="totalsMode" value="both" onchange="updateTotalsModeStyle()" style="display:none;">
                                         <span>📊</span> По строкам и столбцам
                                     </label>
                                 </div>
 
                                 <!-- Разделитель -->
-                                <span style="color:#ddd; font-size:18px; user-select:none;">|</span>
+                                <span class="separator">|</span>
 
                                 <!-- Формат — segmented buttons -->
-                                <div style="display:flex; gap:0; border-radius:6px; overflow:hidden; border:1px solid #c8e6c9; font-size:12px;">
-                                    <label id="formatFlatLabel" style="cursor:pointer; padding:4px 14px; background:#4CAF50; color:white; font-weight:600; transition:all 0.15s; display:flex; align-items:center; gap:4px;" title="Плоский формат: каждая агрегация в отдельной колонке">
+                                <div class="segmented-group segmented-format">
+                                    <label id="formatFlatLabel" class="segmented-label s-active format-pad" title="Плоский формат: каждая агрегация в отдельной колонке">
                                         <input type="radio" name="outputFormat" value="flat" checked onchange="updateOutputFormatStyle2()" style="display:none;">
                                         <span>📐</span> Плоский
                                     </label>
-                                    <label id="formatHierarchicalLabel" style="cursor:pointer; padding:4px 14px; background:#f5f5f5; color:#666; font-weight:500; transition:all 0.15s; display:flex; align-items:center; gap:4px; border-left:1px solid #c8e6c9;" title="Иерархический формат: агрегации отдельными строками с указанием показателя">
+                                    <label id="formatHierarchicalLabel" class="segmented-label s-inactive s-border format-pad" title="Иерархический формат: агрегации отдельными строками с указанием показателя">
                                         <input type="radio" name="outputFormat" value="hierarchical" onchange="updateOutputFormatStyle2()" style="display:none;">
                                         <span>📋</span> Иерархический
                                     </label>
@@ -851,7 +1134,7 @@
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                             <h3 style="margin:0;">Результат</h3>
                             <div>
-                                <span id="constructorRowCount" style="font-size:12px; color:gray; margin-right:10px;"></span>
+                                <span id="constructorRowCount" style="font-size:12px; color:var(--text-muted); margin-right:10px;"></span>
                                 <button id="constructorDownloadBtn" class="btn-success" title="Скачать результат сводной таблицы в формате XLSX">⬇ Скачать XLSX</button>
                             </div>
                         </div>
@@ -868,42 +1151,42 @@
 
             <!-- Вкладка DeepSeek Чат -->
             <div id="deepseek" class="tab-pane">
-                <div style="display: flex; height: 70vh; background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e0e0e0;">
+                <div class="bg-card border-light" style="display: flex; height: 70vh; border-radius: var(--radius-lg); overflow: hidden;">
                     <!-- Боковая панель со списком диалогов -->
-                    <div style="width: 280px; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; background: #fafafa;">
+                    <div class="bg-mapping" style="width: 280px; border-right: 1px solid var(--border-light); display: flex; flex-direction: column;">
                         <!-- Toggle DeepSeek -->
-                        <div style="padding:10px 12px; border-bottom:1px solid #e0e0e0; display:flex; align-items:center; gap:8px; background:white;">
-                            <span style="font-size:13px; font-weight:600; flex:1;">🤖 DeepSeek</span>
+                        <div class="bg-card" style="padding:10px 12px; border-bottom:1px solid var(--border-light); display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:13px; font-weight:600; flex:1; color:var(--text-primary);">🤖 DeepSeek</span>
                             <label id="deepseekToggleLabel" style="position:relative; display:inline-block; width:44px; height:22px; cursor:pointer;" title="Включить или отключить DeepSeek AI">
                                 <input id="deepseekToggle" type="checkbox" style="opacity:0; width:0; height:0;">
-                                <span style="position:absolute; inset:0; background:#ccc; border-radius:22px; transition:0.3s;"></span>
-                                <span style="position:absolute; left:3px; bottom:2px; width:18px; height:18px; background:white; border-radius:50%; transition:0.3s;"></span>
+                                <span style="position:absolute; inset:0; background:var(--bg-progress); border-radius:22px; transition:0.3s;"></span>
+                                <span style="position:absolute; left:3px; bottom:2px; width:18px; height:18px; background:var(--text-on-primary); border-radius:50%; transition:0.3s;"></span>
                             </label>
-                            <span id="deepseekStatusText" style="font-size:12px; color:#999;">Выкл</span>
+                            <span id="deepseekStatusText" style="font-size:12px; color:var(--text-muted);">Выкл</span>
                         </div>
-                        <div style="padding: 12px;"><button id="newChatBtn" style="width:100%; background:#0066ff; color:white; border:none; border-radius:8px; padding:8px;" title="Начать новый диалог с DeepSeek">➕ Новый чат</button></div>
+                        <div style="padding: 12px;"><button id="newChatBtn" class="btn-chat-primary" style="width:100%; padding:8px;" title="Начать новый диалог с DeepSeek">➕ Новый чат</button></div>
                         <div id="conversationsList" style="flex:1; overflow-y:auto; padding:8px;"></div>
                     </div>
                     <!-- Основная область чата -->
                     <div style="flex:1; display:flex; flex-direction:column;">
-                        <div id="chatHeader" style="padding:12px 20px; border-bottom:1px solid #e0e0e0; font-weight:600; background:white; display:flex; justify-content:space-between; align-items:center;"><span>Выберите диалог</span></div>
-                        <div id="chatMessages" style="flex:1; overflow-y:auto; padding:20px; background:#fafafa; display:flex; flex-direction:column; gap:16px;"></div>
-                        <div style="padding:12px; border-top:1px solid #e0e0e0; background:white;">
+                        <div id="chatHeader" class="bg-card" style="padding:12px 20px; border-bottom:1px solid var(--border-light); font-weight:600; display:flex; justify-content:space-between; align-items:center; color:var(--text-primary);"><span>Выберите диалог</span></div>
+                        <div id="chatMessages" class="bg-mapping" style="flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:16px;"></div>
+                        <div class="bg-card" style="padding:12px; border-top:1px solid var(--border-light);">
                             <div id="attachedFileInfo" class="attached-file-indicator" style="display: none;">
                                 <span>📎</span>
                                 <span id="attachedFileName"></span>
                                 <button id="detachFileBtn" title="Открепить файл">✖</button>
                             </div>
-                            <div id="attachedImageInfo" style="display:none; padding:8px; background:#f0f8ff; border-radius:8px; margin-bottom:8px; align-items:center; gap:8px;">
-                                <img id="imagePreview" style="max-width:100px; max-height:80px; border-radius:4px; border:1px solid #ccc;">
-                                <span id="attachedImageName" style="flex:1; font-size:13px;"></span>
-                                <span id="ocrStatus" style="font-size:12px; color:#666;"></span>
-                                <button id="detachImageBtn" style="background:none; border:none; cursor:pointer; font-size:16px;" title="Открепить изображение">✖</button>
+                            <div id="attachedImageInfo" style="display:none; padding:8px; background:var(--bg-attached); border-radius:var(--radius-md); margin-bottom:8px; align-items:center; gap:8px;">
+                                <img id="imagePreview" style="max-width:100px; max-height:80px; border-radius:4px; border:1px solid var(--border-textarea);">
+                                <span id="attachedImageName" style="flex:1; font-size:13px; color:var(--text-primary);"></span>
+                                <span id="ocrStatus" style="font-size:12px; color:var(--text-secondary);"></span>
+                                <button id="detachImageBtn" style="background:none; border:none; cursor:pointer; font-size:16px; color:var(--text-muted);" title="Открепить изображение">✖</button>
                             </div>
                             <div style="display:flex; gap:8px; align-items:flex-start;">
-                                <button id="attachFileBtn" style="background:none; border:none; cursor:pointer; font-size:20px; padding:8px;" title="Прикрепить файл или изображение (.txt, .md, .png, .jpg)">📎</button>
-                                <textarea id="chatInput" rows="3" style="flex:1; border:1px solid #ccc; border-radius:8px; padding:8px; font-family:inherit; resize:vertical;" placeholder="Введите сообщение..." title="Введите сообщение для DeepSeek"></textarea>
-                                <button id="sendChatBtn" style="margin-top:0; background:#0066ff; color:white; border:none; border-radius:8px; padding:8px 16px;" title="Отправить сообщение DeepSeek">Отправить</button>
+                                <button id="attachFileBtn" style="background:none; border:none; cursor:pointer; font-size:20px; padding:8px; color:var(--text-secondary);" title="Прикрепить файл или изображение (.txt, .md, .png, .jpg)">📎</button>
+                                <textarea id="chatInput" rows="3" class="border-input bg-card" style="flex:1; border-radius:var(--radius-md); padding:8px; font-family:inherit; resize:vertical; color:var(--text-primary);" placeholder="Введите сообщение..." title="Введите сообщение для DeepSeek"></textarea>
+                                <button id="sendChatBtn" class="btn-chat-primary" style="margin-top:0; padding:8px 16px;" title="Отправить сообщение DeepSeek">Отправить</button>
                             </div>
                             <input type="file" id="chatFileInput" style="display:none;" accept=".txt,.md,.png,.jpg,.jpeg" title="Выберите файл для отправки в чат">
                         </div>
@@ -924,22 +1207,22 @@
         </div>
         <div id="activeTasks" class="task-list active">
             <div class="add-task-row"><textarea id="newTaskText" placeholder="Новая задача..." rows="3"></textarea><button id="addTaskBtn">➕</button></div>
-            <div id="activeTaskCounter" style="font-size:12px; color:#888; margin:4px 0 6px 2px; padding:0;"></div>
+            <div id="activeTaskCounter" style="font-size:12px; color:var(--text-dim); margin:4px 0 6px 2px; padding:0;"></div>
             <div id="activeTasksList"></div>
         </div>
         <div id="archivedTasks" class="task-list">
             <div class="task-group-controls" style="display:flex; gap:6px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
-                <label style="font-size:12px; color:#666;">Группировка:</label>
-                <select id="archiveGroupBy" style="padding:4px 8px; border:1px solid #ccc; border-radius:4px; font-size:12px;">
+                <label style="font-size:12px; color:var(--text-secondary);">Группировка:</label>
+                <select id="archiveGroupBy" style="padding:4px 8px; border:1px solid var(--border-input); border-radius:4px; font-size:12px;">
                     <option value="day">По дню</option>
                     <option value="month" selected>По месяцу</option>
                     <option value="year">По году</option>
                     <option value="custom">Произвольный период</option>
                 </select>
                 <span id="archiveDateRange" style="display:none; gap:6px; align-items:center;">
-                    <input type="date" id="archiveDateFrom" style="padding:3px 6px; border:1px solid #ccc; border-radius:4px; font-size:12px;">
-                    <span style="font-size:12px; color:#666;">—</span>
-                    <input type="date" id="archiveDateTo" style="padding:3px 6px; border:1px solid #ccc; border-radius:4px; font-size:12px;">
+                    <input type="date" id="archiveDateFrom" style="padding:3px 6px; border:1px solid var(--border-input); border-radius:4px; font-size:12px;">
+                    <span style="font-size:12px; color:var(--text-secondary);">—</span>
+                    <input type="date" id="archiveDateTo" style="padding:3px 6px; border:1px solid var(--border-input); border-radius:4px; font-size:12px;">
                     <button id="archiveApplyPeriod" class="btn-sm btn-primary" style="padding:3px 10px;">Применить</button>
                 </span>
             </div>
@@ -947,17 +1230,17 @@
         </div>
         <div id="cancelledTasks" class="task-list">
             <div class="task-group-controls" style="display:flex; gap:6px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
-                <label style="font-size:12px; color:#666;">Группировка:</label>
-                <select id="cancelledGroupBy" style="padding:4px 8px; border:1px solid #ccc; border-radius:4px; font-size:12px;">
+                <label style="font-size:12px; color:var(--text-secondary);">Группировка:</label>
+                <select id="cancelledGroupBy" style="padding:4px 8px; border:1px solid var(--border-input); border-radius:4px; font-size:12px;">
                     <option value="day">По дню</option>
                     <option value="month" selected>По месяцу</option>
                     <option value="year">По году</option>
                     <option value="custom">Произвольный период</option>
                 </select>
                 <span id="cancelledDateRange" style="display:none; gap:6px; align-items:center;">
-                    <input type="date" id="cancelledDateFrom" style="padding:3px 6px; border:1px solid #ccc; border-radius:4px; font-size:12px;">
-                    <span style="font-size:12px; color:#666;">—</span>
-                    <input type="date" id="cancelledDateTo" style="padding:3px 6px; border:1px solid #ccc; border-radius:4px; font-size:12px;">
+                    <input type="date" id="cancelledDateFrom" style="padding:3px 6px; border:1px solid var(--border-input); border-radius:4px; font-size:12px;">
+                    <span style="font-size:12px; color:var(--text-secondary);">—</span>
+                    <input type="date" id="cancelledDateTo" style="padding:3px 6px; border:1px solid var(--border-input); border-radius:4px; font-size:12px;">
                     <button id="cancelledApplyPeriod" class="btn-sm btn-primary" style="padding:3px 10px;">Применить</button>
                 </span>
             </div>
@@ -1136,7 +1419,7 @@
             if (toggle) toggle.checked = state;
             if (statusText) {
                 statusText.textContent = state ? 'Вкл' : 'Выкл';
-                statusText.style.color = state ? '#27ae60' : '#999';
+                statusText.style.color = state ? 'var(--accent-toggle)' : 'var(--text-muted)';
             }
             // Блокируем/разблокируем элементы чата и список диалогов
             const elements = [chatInput, sendBtn, attachBtn, newChatBtn].filter(Boolean);
@@ -1384,7 +1667,7 @@
                     selectHtml += `</select>`;
                     li.innerHTML = `<code>${escapeHtml(code)}</code> ${selectHtml}
                                     <button class="btn-sm btn-success match-dept-btn" data-code="${escapeHtml(code)}">🔄 Сопоставить</button>
-                                    <button class="btn-sm btn-primary add-new-dept-btn" data-code="${escapeHtml(code)}" style="background: #17a2b8;">➕ Добавить как новое</button>
+                                    <button class="btn-sm btn-primary add-new-dept-btn btn-add-new" data-code="${escapeHtml(code)}">➕ Добавить как новое</button>
                                     <button class="btn-sm btn-secondary ignore-dept-btn" data-code="${escapeHtml(code)}">🚫 Не учитывать</button>`;
                     listContainer.appendChild(li);
                     li.querySelector('.match-dept-btn').addEventListener('click', async () => {
@@ -1454,7 +1737,7 @@
                     selectHtml += `</select>`;
                     li.innerHTML = `<code>${escapeHtml(article)}</code> ${selectHtml}
                                     <button class="btn-sm btn-success match-article-btn" data-article="${escapeHtml(article)}">🔄 Сопоставить</button>
-                                    <button class="btn-sm btn-primary add-new-article-btn" data-article="${escapeHtml(article)}" style="background: #17a2b8;">➕ Добавить как новое</button>`;
+                                    <button class="btn-sm btn-primary add-new-article-btn btn-add-new" data-article="${escapeHtml(article)}">➕ Добавить как новое</button>`;
                     listContainer.appendChild(li);
                     li.querySelector('.match-article-btn').addEventListener('click', async () => {
                         const selectedCode = li.querySelector('.match-article-select').value;
@@ -1788,7 +2071,7 @@
     function linkifyText(text) {
         if (!text) return '';
         const urlRegex = /(https?:\/\/[^\s]+)/g;
-        return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#1976d2; text-decoration:underline;">$1</a>');
+        return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" class="link-default">$1</a>');
     }
     function getTaskCountLabel(count) {
         if (count % 10 === 1 && count % 100 !== 11) return count + ' задача';
@@ -1844,7 +2127,7 @@
         const dateStr = formatDate(task.created_at);
         const contentWrap = document.createElement('div'); contentWrap.style.flex = '1';
         const textSpan = document.createElement('span'); textSpan.className = 'task-text'; textSpan.innerHTML = linkifyText(task.text);
-        const dateInfo = document.createElement('div'); dateInfo.style.cssText = 'font-size:11px; color:#999; margin-top:3px;';
+        const dateInfo = document.createElement('div'); dateInfo.className = 'task-date-info';
         contentWrap.appendChild(textSpan);
         contentWrap.appendChild(dateInfo);
         const delBtn = document.createElement('button'); delBtn.innerText = '🗑 Удалить'; delBtn.classList.add('btn-sm', 'btn-danger');
@@ -1874,7 +2157,8 @@
         const cancelledDiv = document.getElementById('cancelledTasksList');
         activeDiv.innerHTML = ''; archivedDiv.innerHTML = ''; cancelledDiv.innerHTML = '';
 
-        // --- Active (без группировки) ---
+        // --- Active (без группировки), первые 5 — показаны, остальные свёрнуты ---
+        const activeTaskDivs = [];
         tasks.forEach(task => {
             if (task.status !== 'active') return;
             const taskDiv = document.createElement('div'); taskDiv.className = 'task-item'; taskDiv.dataset.id = task.id;
@@ -1885,7 +2169,7 @@
             checkbox.onchange = () => toggleComplete(task.id, checkbox.checked);
             const contentWrap = document.createElement('div'); contentWrap.style.flex = '1';
             const textSpan = document.createElement('span'); textSpan.className = 'task-text'; textSpan.innerHTML = linkifyText(task.text);
-            const dateInfo = document.createElement('div'); dateInfo.style.cssText = 'font-size:11px; color:#999; margin-top:3px;';
+            const dateInfo = document.createElement('div'); dateInfo.className = 'task-date-info';
             if (task.completed && task.completed_at) {
                 dateInfo.innerText = `📅 ${dateStr}  ✅ ${formatDate(task.completed_at)}`;
             } else {
@@ -1909,7 +2193,7 @@
             taskDiv.appendChild(checkbox);
             taskDiv.appendChild(contentWrap);
             taskDiv.appendChild(actionsDiv);
-            activeDiv.appendChild(taskDiv);
+            activeTaskDivs.push(taskDiv);
         });
 
         // Если нет активных — показываем заглушку, иначе обновляем счётчик
@@ -1923,8 +2207,36 @@
                 counterEl.innerText = `📋 Всего: ${activeCount}  |  ✅ Выполнено: ${completedCount}  |  ⏳ Осталось: ${activeCount - completedCount}`;
             }
         }
-        if (activeDiv.children.length === 0) {
+
+        if (activeTaskDivs.length === 0) {
             activeDiv.innerHTML = '<div class="task-group-empty">Нет активных задач</div>';
+        } else {
+            // Первые 5 задач показываем сразу
+            const MAX_VISIBLE = 5;
+            const showCount = Math.min(MAX_VISIBLE, activeTaskDivs.length);
+            for (let i = 0; i < showCount; i++) {
+                activeDiv.appendChild(activeTaskDivs[i]);
+            }
+            // Если задач больше 5 — добавляем сворачиваемый блок
+            if (activeTaskDivs.length > MAX_VISIBLE) {
+                const remainingCount = activeTaskDivs.length - MAX_VISIBLE;
+                const extraContainer = document.createElement('div');
+                extraContainer.className = 'active-tasks-extra';
+                extraContainer.style.display = 'none';
+                for (let i = MAX_VISIBLE; i < activeTaskDivs.length; i++) {
+                    extraContainer.appendChild(activeTaskDivs[i]);
+                }
+                const toggleBtn = document.createElement('button');
+                toggleBtn.className = 'btn-show-more-tasks';
+                toggleBtn.innerText = `Показать ещё (${remainingCount})`;
+                toggleBtn.addEventListener('click', function() {
+                    const isHidden = extraContainer.style.display === 'none';
+                    extraContainer.style.display = isHidden ? 'block' : 'none';
+                    toggleBtn.innerText = isHidden ? `Свернуть (${remainingCount})` : `Показать ещё (${remainingCount})`;
+                });
+                activeDiv.appendChild(extraContainer);
+                activeDiv.appendChild(toggleBtn);
+            }
         }
 
         // --- Archived (с группировкой и сворачиванием) ---
@@ -2238,7 +2550,7 @@
         } catch (e) {
             console.error('Failed to load conversation:', e);
             const container = document.getElementById('chatMessages');
-            if (container) container.innerHTML = `<div class="chat-message" style="text-align:center;padding:40px;color:#e74c3c;">❌ Не удалось загрузить диалог: ${escapeHtml(e.message)}</div>`;
+            if (container) container.innerHTML = `<div class="chat-error">❌ Не удалось загрузить диалог: ${escapeHtml(e.message)}</div>`;
         }
         loadConversations();
     }
@@ -2292,7 +2604,7 @@
         if (currentConvId === convId) {
             currentConvId = null;
             document.getElementById('chatHeader').innerHTML = '<span>Выберите диалог</span>';
-            document.getElementById('chatMessages').innerHTML = '<div style="text-align:center; color:#999; padding:40px;">Выберите или создайте новый чат</div>';
+            document.getElementById('chatMessages').innerHTML = '<div class="chat-placeholder">Выберите или создайте новый чат</div>';
         }
         loadConversations();
     }
@@ -2396,7 +2708,7 @@
                         lastOcrTableJson = ocrData.table_json;
                         const rowCount = ocrData.table_json.length;
                         document.getElementById('ocrStatus').innerHTML =
-                            `OCR: таблица ${rowCount} стр. <a href="#" onclick="downloadOcrTable(); return false;" style="color:#0066ff;">Скачать .xlsx</a>`;
+                            `OCR: таблица ${rowCount} стр. <a href="#" onclick="downloadOcrTable(); return false;" class="link-default">Скачать .xlsx</a>`;
                         showMessage('convertMessage',
                             `Распознана таблица (${rowCount} строк). Можно задать вопрос или скачать .xlsx.`,
                             'success');
@@ -2520,7 +2832,7 @@
             })
         });
         if (!response.ok) {
-            assistantDiv.querySelector('.message-bubble').innerHTML = '<span style="color:red;">Ошибка ответа от сервера</span>';
+            assistantDiv.querySelector('.message-bubble').innerHTML = '<span style="color:var(--accent-danger);">Ошибка ответа от сервера</span>';
             return;
         }
         const reader = response.body.getReader();
@@ -2545,7 +2857,7 @@
                             hljs.highlightAll();
                             scrollChatToBottom();
                         } else if (parsed.error) {
-                            bubble.innerHTML = `<span style="color:red;">Ошибка: ${parsed.error}</span>`;
+                            bubble.innerHTML = `<span style="color:var(--accent-danger);">Ошибка: ${parsed.error}</span>`;
                         }
                     } catch(e) { /* ignore */ }
                 }
@@ -2690,7 +3002,7 @@
         let bodyHtml = '';
         rows.forEach(function(row) {
             bodyHtml += '<tr>';
-            bodyHtml += '<td style="font-weight:600; text-align:center; background:#f5f5f5;">' + row.row_index + '</td>';
+            bodyHtml += '<td style="font-weight:600; text-align:center; background:var(--bg-task-group);">' + row.row_index + '</td>';
             for (var c = 0; c < Math.min(row.values.length, 20); c++) {
                 var val = row.values[c];
                 var display = val.length > 30 ? val.substring(0, 30) + '...' : val;
@@ -2705,10 +3017,8 @@
         var savedRow = savedConfig ? savedConfig.header_row : null;
         selector.innerHTML = rows.map(function(row, idx) {
             var checked = (savedRow !== null && savedRow === row.row_index) || (savedRow === null && row.row_index === bestRow);
-            var bgColor = checked ? '#ff9800' : '#f0f0f0';
-            var txtColor = checked ? 'white' : '#333';
-            var fw = checked ? '600' : '400';
-            return '<label style="cursor:pointer; padding:6px 14px; background:' + bgColor + '; color:' + txtColor + '; border-radius:6px; font-size:13px; font-weight:' + fw + '; transition:all 0.15s; display:flex; align-items:center; gap:4px;">'
+            var cls = checked ? 'header-radio-label hr-active' : 'header-radio-label hr-inactive';
+            return '<label class="' + cls + '">'
                 + '<input type="radio" name="headerRowChoice" value="' + row.row_index + '" ' + (checked ? 'checked' : '') + ' onchange="updateHeaderRowChoice(this)" style="display:none;">'
                 + '<span>📌 Строка ' + row.row_index + '</span>'
                 + '<span style="opacity:0.7;">(' + row.n_non_null + '/' + row.total_cols + ' значений)</span>'
@@ -2728,13 +3038,11 @@
         document.querySelectorAll('#headerRowSelector label').forEach(function(label) {
             var rb = label.querySelector('input[type="radio"]');
             if (rb && rb.checked) {
-                label.style.background = '#ff9800';
-                label.style.color = 'white';
-                label.style.fontWeight = '600';
+                label.classList.add('hr-active');
+                label.classList.remove('hr-inactive');
             } else {
-                label.style.background = '#f0f0f0';
-                label.style.color = '#333';
-                label.style.fontWeight = '400';
+                label.classList.add('hr-inactive');
+                label.classList.remove('hr-active');
             }
         });
     }
@@ -2889,7 +3197,7 @@
         container.innerHTML = columns.map(col => {
             const dtype = (dtypes && dtypes[col]) || 'text';
             const icon = dtype === 'number' ? '🔢' : dtype === 'date' ? '📅' : '📝';
-            return `<label class="constructor-col-label" data-col="${escapeHtml(col)}" style="display:inline-flex; align-items:center; gap:4px; padding:4px 8px; background:#f8f9fa; border-radius:4px; cursor:pointer; font-size:13px;">
+            return `<label class="constructor-col-label" data-col="${escapeHtml(col)}">
                 <input type="checkbox" class="constructor-col-checkbox" value="${escapeHtml(col)}" checked>
                 <span>${icon} ${escapeHtml(col)}</span>
             </label>`;
@@ -2934,7 +3242,7 @@
     function renderConstructorFilters(columns) {
         const container = document.getElementById('constructorFilters');
         constructorFiltersList = [];
-        container.innerHTML = '<p style="color:#999; font-size:13px;">Фильтры не добавлены. Нажмите "➕ Добавить фильтр".</p>';
+        container.innerHTML = '<p class="empty-text">Фильтры не добавлены. Нажмите "➕ Добавить фильтр".</p>';
     }
 
     function renderConstructorPivotSelects(columns, dateColumns) {
@@ -2952,7 +3260,7 @@
                         { value: `__день__${col}`, label: `📅 ▸ ${escapeHtml(col)} ▸ день` },
                     ];
                     parts.forEach(p => {
-                        html += `<option value="${escapeHtml(p.value)}" style="padding-left:20px; color:#2c6b9e;">&nbsp;&nbsp;↳ ${p.label}</option>`;
+                        html += `<option value="${escapeHtml(p.value)}" class="option-indent">&nbsp;&nbsp;↳ ${p.label}</option>`;
                     });
                 }
             });
@@ -3006,7 +3314,7 @@
                             { value: `__день__${col}`, label: `📅 ▸ ${escapeHtml(col)} ▸ день` },
                         ];
                         parts.forEach(p => {
-                            html += `<option value="${escapeHtml(p.value)}" style="padding-left:20px; color:#2c6b9e;">&nbsp;&nbsp;↳ ${p.label}</option>`;
+                            html += `<option value="${escapeHtml(p.value)}" class="option-indent">&nbsp;&nbsp;↳ ${p.label}</option>`;
                         });
                     }
                 }
@@ -3182,12 +3490,15 @@
     // ==================== Sortable values (перетаскиваемые значения) ====================
 
     /** Синхронизирует видимый sortable-список значений со скрытым <select> и обновляет add-select */
+    function _renderSortableEmpty(container) {
+        container.innerHTML = '<div class="sortable-rows-empty badge-empty">Выберите колонки из списка выше</div>';
+    }
     function syncConstructorValuesList() {
         const container = document.getElementById('constructorPivotValuesContainer');
         const select = document.getElementById('constructorPivotValues');
         const selected = Array.from(select.selectedOptions);
         if (selected.length === 0) {
-            container.innerHTML = '<div class="sortable-rows-empty" style="text-align:center; color:#bbb; padding:50px 0; font-size:13px;">Выберите колонки из списка выше</div>';
+            _renderSortableEmpty(container);
         } else {
             let html = '';
             selected.forEach((opt, idx) => {
@@ -3328,7 +3639,7 @@
         const select = document.getElementById('constructorPivotCols');
         const selected = Array.from(select.selectedOptions);
         if (selected.length === 0) {
-            container.innerHTML = '<div class="sortable-rows-empty" style="text-align:center; color:#bbb; padding:50px 0; font-size:13px;">Выберите колонки из списка выше</div>';
+            _renderSortableEmpty(container);
         } else {
             let html = '';
             selected.forEach((opt, idx) => {
@@ -3470,46 +3781,32 @@
         const isFlat = document.querySelector('input[name="outputFormat"][value="flat"]')?.checked;
         if (!flatLabel || !hierLabel) return;
         if (isFlat) {
-            flatLabel.style.background = '#4CAF50';
-            flatLabel.style.color = 'white';
-            flatLabel.style.fontWeight = '600';
-            hierLabel.style.background = '#f5f5f5';
-            hierLabel.style.color = '#666';
-            hierLabel.style.fontWeight = '500';
+            flatLabel.classList.add('s-active');
+            flatLabel.classList.remove('s-inactive');
+            hierLabel.classList.add('s-inactive');
+            hierLabel.classList.remove('s-active');
         } else {
-            flatLabel.style.background = '#f5f5f5';
-            flatLabel.style.color = '#666';
-            flatLabel.style.fontWeight = '500';
-            hierLabel.style.background = '#4CAF50';
-            hierLabel.style.color = 'white';
-            hierLabel.style.fontWeight = '600';
+            flatLabel.classList.add('s-inactive');
+            flatLabel.classList.remove('s-active');
+            hierLabel.classList.add('s-active');
+            hierLabel.classList.remove('s-inactive');
         }
     }
 
     // Segmented buttons для выбора режима итогов
     function updateTotalsModeStyle() {
         const modes = ['none', 'rows', 'cols', 'both'];
-        const colors = {
-            none: { bg: '#ff9800', text: 'white', border: '#ffe0b2' },
-            rows: { bg: '#ff9800', text: 'white', border: '#ffe0b2' },
-            cols: { bg: '#ff9800', text: 'white', border: '#ffe0b2' },
-            both: { bg: '#ff9800', text: 'white', border: '#ffe0b2' },
-        };
-        const inactiveBg = '#f5f5f5';
-        const inactiveText = '#666';
 
         modes.forEach(mode => {
             const radio = document.querySelector(`input[name="totalsMode"][value="${mode}"]`);
             const label = document.getElementById(`totals${mode.charAt(0).toUpperCase() + mode.slice(1)}Label`);
             if (!radio || !label) return;
             if (radio.checked) {
-                label.style.background = colors[mode].bg;
-                label.style.color = colors[mode].text;
-                label.style.fontWeight = '600';
+                label.classList.add('s-active');
+                label.classList.remove('s-inactive');
             } else {
-                label.style.background = inactiveBg;
-                label.style.color = inactiveText;
-                label.style.fontWeight = '500';
+                label.classList.add('s-inactive');
+                label.classList.remove('s-active');
             }
         });
     }
@@ -3531,10 +3828,10 @@
         header.innerHTML = columns.map(c => {
             const isItogoCol = c.includes('Итого');
             if (isHierarchical && c === aggColumn) {
-                return '<th style="background:#f0f4c3;">📊 Агрегация</th>';
+                return '<th class="constructor-th-agg">📊 Агрегация</th>';
             }
             if (isItogoCol) {
-                return `<th style="background:#fff3e0; color:#e65100; font-weight:700;">${escapeHtml(c)}</th>`;
+                return `<th class="constructor-th-totals">${escapeHtml(c)}</th>`;
             }
             return `<th>${escapeHtml(c)}</th>`;
         }).join('');
@@ -3552,41 +3849,41 @@
                     if (isHierarchical && c === aggColumn) return false;
                     return String(row[c] ?? '').trim() === 'Итого';
                 });
-                const rowStyle = isItogoRow
-                    ? 'background:#fff8e1; font-weight:700; border-top:2px solid #ff9800;'
-                    : (i % 2 === 0 ? 'background:#fafafa;' : '');
+                const rowClass = isItogoRow
+                    ? 'constructor-row-totals'
+                    : (i % 2 === 0 ? 'constructor-row-even' : '');
 
                 const cells = columns.map((c) => {
                     const val = String(row[c] ?? '');
                     if (isHierarchical && c === aggColumn) {
-                        return `<td style="font-weight:600; color:#2e7d32; background:#f1f8e9;">${escapeHtml(val)}</td>`;
+                        return `<td class="constructor-td-agg">${escapeHtml(val)}</td>`;
                     }
                     if (rowColumns.includes(c)) {
                         // Row-колонка: определяем, первое ли это вхождение в группе
                         const isFirst = i === 0 || String(data[i - 1][c] ?? '') !== val;
                         if (isItogoRow) {
-                            return `<td style="font-weight:700; vertical-align:top;">${escapeHtml(val)}</td>`;
+                            return `<td class="constructor-td-totals">${escapeHtml(val)}</td>`;
                         }
                         if (isFirst) {
                             // Первое вхождение группы — жирный шрифт
-                            return `<td style="font-weight:600; vertical-align:top; color:#333;">${escapeHtml(val)}</td>`;
+                            return `<td class="constructor-td-group-first">${escapeHtml(val)}</td>`;
                         } else {
                             // Повторное вхождение — серым цветом, чтобы не отвлекало
-                            return `<td style="font-weight:400; vertical-align:top; color:#b0b0b0;">${escapeHtml(val)}</td>`;
+                            return `<td class="constructor-td-group-repeat">${escapeHtml(val)}</td>`;
                         }
                     }
                     // Обычная ячейка (не row-колонка)
                     const isItogoVal = !isHierarchical && val.trim() === 'Итого';
                     if (isItogoVal) {
-                        return `<td style="font-weight:700; color:#e65100;">${escapeHtml(val)}</td>`;
+                        return `<td class="constructor-td-totals">${escapeHtml(val)}</td>`;
                     }
                     return `<td>${escapeHtml(val)}</td>`;
                 });
-                html += `<tr style="${rowStyle}">${cells.join('')}</tr>`;
+                html += `<tr class="${rowClass}">${cells.join('')}</tr>`;
             }
             body.innerHTML = html;
         } else {
-            body.innerHTML = '<tr><td colspan="99" style="text-align:center; color:#999;">Нет данных</td></tr>';
+            body.innerHTML = '<tr><td colspan="99" class="no-data-cell">Нет данных</td></tr>';
         }
     }
 
@@ -3628,11 +3925,8 @@
         constructorFiltersList.push({ id: filterId, column: '', type: 'contains', value: '' });
         const div = document.createElement('div');
         div.id = filterId;
-        div.className = 'flex-row';
+        div.className = 'flex-row filter-container';
         div.style.marginBottom = '8px';
-        div.style.padding = '8px';
-        div.style.background = '#f8f9fa';
-        div.style.borderRadius = '6px';
         div.innerHTML = `
             <div class="form-group" style="flex:2;"><select class="cf-column" style="width:100%;" title="Выберите колонку для фильтрации">
                 <option value="">-- Колонка --</option>
@@ -3659,7 +3953,7 @@
             div.remove();
             constructorFiltersList = constructorFiltersList.filter(f => f.id !== filterId);
             if (constructorFiltersList.length === 0) {
-                container.innerHTML = '<p style="color:#999; font-size:13px;">Фильтры не добавлены.</p>';
+                container.innerHTML = '<p class="empty-text">Фильтры не добавлены.</p>';
             }
         });
     });
@@ -3906,12 +4200,12 @@
             const data = await res.json();
             if (data.error) throw new Error(data.error);
             if (!data.scenarios || data.scenarios.length === 0) {
-                listEl.innerHTML = '<p style="color:#999;">Нет сохранённых сценариев</p>';
+                listEl.innerHTML = '<p class="empty-text">Нет сохранённых сценариев</p>';
                 return;
             }
             listEl.innerHTML = data.scenarios.map(s => `
-                <div style="display:flex; gap:8px; align-items:center; padding:6px 8px; border-bottom:1px solid #e0e0e0;">
-                    <span style="flex:1;">📄 ${escapeHtml(s.name)} <span style="font-size:11px; color:#999;">(${s.updated_at})</span></span>
+                <div class="scenario-list-item">
+                    <span style="flex:1;">📄 ${escapeHtml(s.name)} <span class="scenario-date">(${s.updated_at})</span></span>
                     <button class="btn-sm btn-success scenario-load-btn" data-name="${escapeHtml(s.name)}" title="Загрузить этот сценарий">📂 Открыть</button>
                     <button class="btn-sm btn-danger scenario-delete-btn" data-name="${escapeHtml(s.name)}" title="Удалить этот сценарий">🗑</button>
                 </div>
@@ -4045,11 +4339,8 @@
                 constructorFiltersList.push({ id: filterId, column: col, type: spec.type || 'contains', value: spec.value || '' });
                 const div = document.createElement('div');
                 div.id = filterId;
-                div.className = 'flex-row';
+                div.className = 'flex-row filter-container';
                 div.style.marginBottom = '8px';
-                div.style.padding = '8px';
-                div.style.background = '#f8f9fa';
-                div.style.borderRadius = '6px';
                 div.innerHTML = `
                     <div class="form-group" style="flex:2;"><select class="cf-column" style="width:100%;" title="Выберите колонку для фильтрации">
                         <option value="">-- Колонка --</option>
@@ -4075,7 +4366,7 @@
                     div.remove();
                     constructorFiltersList = constructorFiltersList.filter(f => f.id !== filterId);
                     if (constructorFiltersList.length === 0) {
-                        filterContainer.innerHTML = '<p style="color:#999; font-size:13px;">Фильтры не добавлены.</p>';
+                        filterContainer.innerHTML = '<p class="empty-text">Фильтры не добавлены.</p>';
                     }
                 });
             });
@@ -4111,7 +4402,7 @@
         document.getElementById('constructorResult').style.display = 'none';
         document.getElementById('constructorSheetSelect').innerHTML = '';
         document.getElementById('constructorColumnsList').innerHTML = '';
-        document.getElementById('constructorFilters').innerHTML = '<p style="color:#999; font-size:13px;">Фильтры не добавлены.</p>';
+        document.getElementById('constructorFilters').innerHTML = '<p class="empty-text">Фильтры не добавлены.</p>';
         // Скрываем панель сценариев
         document.getElementById('constructorScenarioPanel').style.display = 'none';
         document.getElementById('constructorScenarioSave').style.display = 'none';
@@ -4203,7 +4494,7 @@
         if (!banner) return;
 
         const actions = document.getElementById('updateActions');
-        actions.innerHTML = '<span style="color:#856404;font-size:13px;">⏳ Скачивание обновления...</span>';
+        actions.innerHTML = '<span class="update-status-warning">⏳ Скачивание обновления...</span>';
 
         document.getElementById('updateProgress').style.display = 'block';
         document.getElementById('progressFill').style.width = '0%';
@@ -4264,7 +4555,7 @@
         const progressText = document.getElementById('progressText');
         const actions = document.getElementById('updateActions');
         if (progressText) progressText.textContent = '❌ ' + msg;
-        if (progressText) progressText.style.color = '#d32f2f';
+        if (progressText) progressText.style.color = 'var(--accent-danger)';
         actions.innerHTML = '<button class="btn-update-later" onclick="dismissUpdate()">Закрыть</button>';
         const dot = document.querySelector('.version-dot');
         if (dot) dot.className = 'version-dot error';
@@ -4276,7 +4567,7 @@
 
     function restartForUpdate() {
         const actions = document.getElementById('updateActions');
-        actions.innerHTML = '<span style="color:#2e7d32;font-size:13px;">🔄 Перезапуск...</span>';
+        actions.innerHTML = '<span class="update-status-success">🔄 Перезапуск...</span>';
         const progressText = document.getElementById('progressText');
         if (progressText) progressText.textContent = 'Сервер перезапускается...';
 
@@ -4327,6 +4618,52 @@
     <span class="version-dot"></span>
     <span id="versionText">v1.0.0</span>
 </div>
+<!-- Кнопка переключения темы -->
+<button id="themeToggle" class="theme-toggle" title="Переключить тему (светлая/тёмная)">🌙</button>
 </div><!-- /appContent -->
+<script>
+    // ========== ТЁМНАЯ ТЕМА ==========
+    (function() {
+        const STORAGE_KEY = 'theme';
+        const THEME_LIGHT = 'light';
+        const THEME_DARK = 'dark';
+
+        function getPreferredTheme() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved === THEME_DARK || saved === THEME_LIGHT) {
+                return saved;
+            }
+            // По умолчанию светлая
+            return THEME_LIGHT;
+        }
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem(STORAGE_KEY, theme);
+            const btn = document.getElementById('themeToggle');
+            if (btn) {
+                btn.textContent = theme === THEME_DARK ? '☀️' : '🌙';
+                btn.title = theme === THEME_DARK ? 'Переключить на светлую тему' : 'Переключить на тёмную тему';
+            }
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme') || THEME_LIGHT;
+            const next = current === THEME_DARK ? THEME_LIGHT : THEME_DARK;
+            applyTheme(next);
+        }
+
+        // Применяем тему при загрузке
+        applyTheme(getPreferredTheme());
+
+        // Навешиваем обработчик на кнопку после загрузки DOM
+        document.addEventListener('DOMContentLoaded', function() {
+            const btn = document.getElementById('themeToggle');
+            if (btn) {
+                btn.addEventListener('click', toggleTheme);
+            }
+        });
+    })();
+</script>
 </body>
 </html>
