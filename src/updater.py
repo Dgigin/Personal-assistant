@@ -228,8 +228,10 @@ def _create_apply_script(project_root: str, python_cmd: str = "", app_path: str 
     Возвращает путь к созданному скрипту.
     """
     script_path = os.path.join(project_root, "apply_update.py")
-    python = python_cmd or "python"
-    app = app_path or os.path.join(project_root, "app.py")
+    # Экранируем обратные слеши, чтобы f-строка ниже не интерпретировала
+    # \a, \P и т.д. как escape-последовательности
+    python = (python_cmd or "python").replace("\\", "\\\\")
+    app = (app_path or os.path.join(project_root, "app.py")).replace("\\", "\\\\")
 
     script_content = f'''# -*- coding: utf-8 -*-
 """Автоматически создан модулем updater.py — распаковка обновления и запуск приложения."""
