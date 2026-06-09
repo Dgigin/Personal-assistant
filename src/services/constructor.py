@@ -9,9 +9,11 @@ import os
 import re
 import json
 import uuid
+import time
 import traceback
 import logging
 import warnings
+import threading
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
 
@@ -22,6 +24,143 @@ from ..utils.file_utils import read_file_to_df
 from ..types import PivotResult, ApplyFiltersResult
 
 logger = logging.getLogger(__name__)
+
+# ==================== АСИНХРОННЫЙ PIVOT ====================
+# Глобальный реестр фоновых задач построения сводных таблиц
+_pivot_tasks: Dict[str, Dict[str, Any]] = {}
+_pivot_tasks_lock = threading.Lock()
+
+
+def _pivot_worker(task_id: str, pivot_kwargs: Dict[str, Any]) -> None:
+    """
+    Фоновый worker для асинхронного построения сводной таблицы.
+    Выполняет build_pivot_table в отдельном потоке и сохраняет результат.
+
+    :param task_id: ID задачи
+    :param pivot_kwargs: Аргументы для build_pivot_table (кроме cached_df,
+                         который может быть передан отдельно)
+    """
+    try:
+        with _pivot_tasks_lock:
+            if task_id in _pivot_tasks:
+                _pivot_tasks[task_id]['status'] = 'running'
+                _pivot_tasks[task_id]['progress'] = 0.1
+
+        # Имитируем прогресс: 10-50% — чтение и подготовка данных
+        # build_pivot_table сама читает и обрабатывает данные
+        # Прогресс обновляем до и после ключевых этапов
+
+        # Этап 1: чтение данных (прогресс ~30%)
+        # (build_pivot_table читает файл внутри себя)
+
+        with _pivot_tasks_lock:
+            if task_id in _pivot_tasks:
+                _pivot_tasks[task_id]['progress'] = 0.3
+
+        # Выполняем build_pivot_table
+        result = build_pivot_table(**pivot_kwargs)
+
+        # Этап 2: готово (прогресс 100%)
+        with _pivot_tasks_lock:
+            if task_id in _pivot_tasks:
+                _pivot_tasks[task_id]['status'] = 'completed'
+                _pivot_tasks[task_id]['progress'] = 1.0
+                _pivot_tasks[task_id]['result'] = result
+
+        logger.info("Асинхронный pivot %s завершён успешно", task_id)
+
+    except Exception as e:
+        logger.error("Асинхронный pivot %s упал: %s\n%s", task_id, e, traceback.format_exc())
+        with _pivot_tasks_lock:
+            if task_id in _pivot_tasks:
+                _pivot_tasks[task_id]['status'] = 'error'
+                _pivot_tasks[task_id]['error'] = str(e)
+                _pivot_tasks[task_id]['progress'] = 1.0
+
+
+def build_pivot_async(**kwargs) -> str:
+    """
+    Запускает построение сводной таблицы в фоновом потоке.
+
+    Принимает те же аргументы, что и build_pivot_table:
+    file_path, sheet_name, rows, values, cols, agg_functions,
+    filters, selected_columns, output_format, cached_df,
+    totals_mode, header_row
+
+    :return: task_id — UUID задачи для отслеживания статуса
+    """
+    task_id = uuid.uuid4().hex
+
+    with _pivot_tasks_lock:
+        _pivot_tasks[task_id] = {
+            'status': 'queued',
+            'progress': 0.0,
+            'result': None,
+            'error': None,
+            'created_at': time.time(),
+        }
+
+    # Запускаем фоновый поток
+    thread = threading.Thread(
+        target=_pivot_worker,
+        args=(task_id, kwargs),
+        daemon=True,
+    )
+    thread.start()
+
+    logger.info("Асинхронный pivot %s запущен", task_id)
+    return task_id
+
+
+def get_pivot_task_status(task_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Возвращает статус асинхронной задачи построения сводной.
+
+    :param task_id: ID задачи
+    :return: {
+        status: 'queued'|'running'|'completed'|'error',
+        progress: 0.0..1.0,
+        result: Dict (только если completed),
+        error: str (только если error)
+    } или None если задача не найдена
+    """
+    with _pivot_tasks_lock:
+        task = _pivot_tasks.get(task_id)
+        if task is None:
+            return None
+        # Возвращаем копию, чтобы избежать race condition при чтении result
+        return {
+            'status': task['status'],
+            'progress': task['progress'],
+            'result': task.get('result'),
+            'error': task.get('error'),
+            'created_at': task.get('created_at'),
+        }
+
+
+def cleanup_old_pivot_tasks(max_age_seconds: int = 3600) -> int:
+    """
+    Очищает завершённые/ошибочные задачи старше max_age_seconds.
+
+    :param max_age_seconds: Максимальный возраст задачи в секундах
+    :return: Количество удалённых задач
+    """
+    now = time.time()
+    removed = 0
+    with _pivot_tasks_lock:
+        to_delete = []
+        for task_id, task in _pivot_tasks.items():
+            if task['status'] in ('completed', 'error'):
+                age = now - task.get('created_at', 0)
+                if age > max_age_seconds:
+                    to_delete.append(task_id)
+        for task_id in to_delete:
+            del _pivot_tasks[task_id]
+            removed += 1
+    if removed:
+        logger.info("Очищено %d старых асинхронных pivot-задач", removed)
+    return removed
+
 
 # Константы
 AGG_COLUMN_NAME = 'Агрегация'

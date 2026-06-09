@@ -67,6 +67,15 @@ update.zip
 _test_out.json
 *.csv
 
+# Dev / debug files (not for repo)
+_debug.txt
+f
+test_output.txt
+task_progress.txt
+requirements-dev.txt
+setup_env.py
+vision_test.py
+
 # Installer output
 Output/
 

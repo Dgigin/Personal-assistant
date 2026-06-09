@@ -678,8 +678,10 @@
 
         /* Переключатель темы в шапке */
         .theme-toggle {
-            background: none;
-            border: 1px solid var(--border-light);
+            background: none !important;
+            border: 0 !important;
+            outline: none !important;
+            box-shadow: none !important;
             border-radius: var(--radius-sm);
             padding: 2px 6px;
             cursor: pointer;
@@ -690,9 +692,16 @@
             justify-content: center;
             transition: background 0.2s;
             color: var(--text-muted);
+            text-decoration: none !important;
         }
         .theme-toggle:hover {
-            background: var(--bg-hover);
+            background: var(--bg-hover) !important;
+            border: 0 !important;
+        }
+        .theme-toggle:focus-visible {
+            outline: none !important;
+            box-shadow: none !important;
+            border: 0 !important;
         }
 
         /* ========== КЛАССЫ ДЛЯ JS-ГЕНЕРИРУЕМЫХ СТИЛЕЙ ========== */
@@ -1186,12 +1195,25 @@
                             <div>
                                 <span id="constructorRowCount" style="font-size:12px; color:var(--text-muted); margin-right:10px;"></span>
                                 <button id="constructorDownloadBtn" class="btn-success" title="Скачать результат сводной таблицы в формате XLSX">⬇ Скачать XLSX</button>
+                                <button id="constructorDownloadCsvBtn" class="btn-secondary" title="Скачать результат сводной таблицы в формате CSV" style="margin-left:4px; border:1px solid var(--border-light); padding:4px 10px; border-radius:4px; cursor:pointer; font-size:13px; background:var(--bg-card); color:var(--text-primary);">📋 Скачать CSV</button>
+                            </div>
+                            <!-- Прогресс-бар асинхронного построения сводной -->
+                            <div id="constructorPivotProgress" class="constructor-progress" style="display:none; margin-top:10px;">
+                                <div class="progress-label" id="constructorPivotProgressLabel">⏳ Построение сводной таблицы...</div>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill" id="constructorPivotProgressFill"></div>
+                                </div>
+                                <div class="progress-text" style="display:flex; justify-content:space-between;">
+                                    <span id="constructorPivotProgressText">0%</span>
+                                    <span id="constructorPivotProgressCancel" style="cursor:pointer; color:var(--accent-danger);">✕ отмена</span>
+                                </div>
                             </div>
                         </div>
                         <div class="table-wrapper" style="max-height:400px; overflow-y:auto;">
                             <table id="constructorResultTable" class="preview-table">
                                 <thead><tr id="constructorResultHeader"></tr></thead>
                                 <tbody id="constructorResultBody"></tbody>
+
                             </table>
                         </div>
                     </div>
@@ -1329,10 +1351,55 @@
     let lastOcrTableJson = null;
     let lastOcrRawText = '';
 
+    // ------------------- CSRF-защита -------------------
+    let _csrfToken = null;
+
+    /** Получает CSRF-токен с сервера */
+    async function _fetchCsrfToken() {
+        try {
+            const res = await fetch('/api/csrf_token');
+            const data = await res.json();
+            _csrfToken = data.csrf_token;
+        } catch (e) {
+            console.warn('CSRF token fetch failed:', e);
+        }
+    }
+
+    /** Автоматически добавляет CSRF-токен ко всем мутирующим запросам */
+    const _originalFetch = window.fetch;
+    window.fetch = function(input, init) {
+        const url = (typeof input === 'string') ? input : (input.url || '');
+        const method = (init && init.method) || 'GET';
+
+        // Добавляем CSRF-токен только к мутирующим запросам
+        if (_csrfToken && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+            // Исключаем только пути, которые реально не должны проверять CSRF
+            // (например, обновления которых инициирует не пользователь)
+            const exemptPaths = ['/api/check_update', '/api/check_update/status',
+                                 '/api/apply_update', '/api/apply_update/restart'];
+            const isExempt = exemptPaths.some(p => url.startsWith(p));
+            if (!isExempt) {
+
+                init = init || {};
+                init.headers = init.headers || {};
+                if (init.headers instanceof Headers) {
+                    init.headers.set('X-CSRFToken', _csrfToken);
+                } else {
+                    init.headers['X-CSRFToken'] = _csrfToken;
+                }
+            }
+        }
+        return _originalFetch.call(this, input, init);
+    };
+
+    // Получаем CSRF-токен при загрузке страницы
+    _fetchCsrfToken();
+
     // ------------------- АУТЕНТИФИКАЦИЯ (сессионная) -------------------
     const _auth = {
         enabled: false,
         authenticated: false,
+
         /** Показывает модалку логина и скрывает основной контент */
         showLogin() {
             document.body.classList.add('login-shown');
@@ -1380,6 +1447,8 @@
                 this.authenticated = true;
                 this.hideLogin();
                 this._toggleLogoutBtn(true);
+                // После входа сессия меняется — перезапрашиваем CSRF-токен
+                _fetchCsrfToken();
                 // Перезагружаем данные
                 loadProfilesList();
                 loadDepartments();
@@ -1388,6 +1457,7 @@
                 loadConversations();
             }
             return data;
+
         },
         /** Выход из системы */
         async logout() {
@@ -2931,10 +3001,69 @@
         }
     });
 
-    // ------------------- ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК -------------------
+    // ------ Авто-сохранение черновика конструктора ------
+    function saveConstructorDraft() {
+        if (!constructorFileId && !constructorCurrentSheet) return;
+        try {
+            const draft = {
+                fileId: constructorFileId,
+                currentSheet: constructorCurrentSheet,
+                // Сохраняем только имена выбранных опций, не все options
+                rows: Array.from(document.getElementById('constructorPivotRows')?.selectedOptions || []).map(o => o.value),
+                values: Array.from(document.getElementById('constructorPivotValues')?.selectedOptions || []).map(o => o.value),
+                cols: Array.from(document.getElementById('constructorPivotCols')?.selectedOptions || []).map(o => o.value),
+                aggFunction: document.getElementById('constructorAggFunction')?.value || 'sum',
+                totalsMode: document.querySelector('input[name="totalsMode"]:checked')?.value || 'none',
+                outputFormat: document.querySelector('input[name="outputFormat"]:checked')?.value || 'flat',
+                sheetHeaderConfig: constructorSheetHeaderConfig,
+            };
+            localStorage.setItem('constructorDraft', JSON.stringify(draft));
+        } catch(e) { /* ignore */ }
+    }
+
+    function loadConstructorDraft() {
+        try {
+            const raw = localStorage.getItem('constructorDraft');
+            if (!raw) return;
+            const draft = JSON.parse(raw);
+            if (!draft.fileId || !draft.currentSheet) return;
+            // Восстанавливаем секции
+            constructorFileId = draft.fileId;
+            constructorCurrentSheet = draft.currentSheet;
+            if (draft.sheetHeaderConfig) constructorSheetHeaderConfig = draft.sheetHeaderConfig;
+            // Показываем шаг 2
+            document.getElementById('constructorStep2').style.display = 'block';
+            // Загружаем листы (повторно не загружаем файл)
+            fetch('/api/constructor/file_info', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({file_id: draft.fileId})
+            }).then(r => r.json()).then(info => {
+                if (info.exists) {
+                    // Восстанавливаем остальное
+                    if (draft.aggFunction) document.getElementById('constructorAggFunction').value = draft.aggFunction;
+                    // Восстанавливаем radio
+                    const tmRadio = document.querySelector(`input[name="totalsMode"][value="${draft.totalsMode || 'none'}"]`);
+                    if (tmRadio) tmRadio.checked = true;
+                    const ofRadio = document.querySelector(`input[name="outputFormat"][value="${draft.outputFormat || 'flat'}"]`);
+                    if (ofRadio) ofRadio.checked = true;
+                    updateTotalsModeStyle();
+                    updateOutputFormatStyle2();
+                    showMessage('constructorMessage', '🔁 Черновик конструктора восстановлен', 'success');
+                } else {
+                    // Файл уже не существует — очищаем черновик
+                    localStorage.removeItem('constructorDraft');
+                }
+            }).catch(() => {});
+        } catch(e) { /* ignore */ }
+    }
+
+    // Авто-сохранение при переключении вкладок
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const tabId = btn.dataset.tab;
+            // Сохраняем черновик при уходе с конструктора
+            if (tabId !== 'constructor') saveConstructorDraft();
             document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
@@ -2946,7 +3075,8 @@
             if (tabId === 'profiles') loadProfilesForManagement();
             if (tabId === 'convert') loadProfilesList();
             if (tabId === 'constructor') {
-                // При переключении на конструктор ничего не делаем
+                // При переключении на конструктор — пытаемся загрузить черновик
+                if (!constructorFileId) loadConstructorDraft();
             }
             if (tabId === 'deepseek') {
                 setTimeout(() => {
@@ -2955,6 +3085,18 @@
             }
         });
     });
+
+    // Сохраняем черновик перед уходом со страницы
+    window.addEventListener('beforeunload', saveConstructorDraft);
+
+    // Авто-сохранение каждые 30 секунд (пока открыт конструктор)
+    setInterval(() => {
+        // Сохраняем только если конструктор активен и есть загруженные данные
+        const constrPane = document.getElementById('constructor');
+        if (constrPane && constrPane.classList.contains('active') && constructorFileId) {
+            saveConstructorDraft();
+        }
+    }, 30000);
 
     // ------------------- КНОПКИ СБРОСА -------------------
     document.getElementById('resetConvertBtn')?.addEventListener('click', () => {
@@ -3189,6 +3331,32 @@
             const sheetSelect = document.getElementById('constructorSheetSelect');
             sheetSelect.innerHTML = data.sheets.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)} (${s.rows} строк, ${s.cols} колонок)</option>`).join('');
             document.getElementById('constructorStep2').style.display = 'block';
+            // Показываем предложение сценария, если есть подходящий
+            if (data.suggested_scenarios && data.suggested_scenarios.length > 0) {
+                const scenarioBtns = data.suggested_scenarios.map(sName =>
+                    `<button class="btn-sm btn-info suggested-scenario-btn" data-name="${escapeHtml(sName)}" title="Применить сценарий">🔁 ${escapeHtml(sName)}</button>`
+                ).join(' ');
+                statusEl.innerHTML += `<br><div style="margin-top:8px;"><span style="color:var(--text-info);">💡 Найден подходящий сценарий: </span>${scenarioBtns}</div>`;
+                // Вешаем обработчики на кнопки сценариев
+                document.querySelectorAll('.suggested-scenario-btn').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const sName = btn.dataset.name;
+                        try {
+                            const r = await fetch('/api/constructor/scenario/load', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({name: sName}),
+                            });
+                            const sData = await r.json();
+                            if (sData.error) throw new Error(sData.error);
+                            applyScenario(sData.params || sData);
+                            showMessage('constructorMessage', `✅ Сценарий "${sName}" применён`, 'success');
+                        } catch (e) {
+                            showMessage('constructorMessage', `❌ ${e.message}`, 'error');
+                        }
+                    });
+                });
+            }
             showMessage('constructorMessage', 'Выберите лист и загрузите данные', 'success');
         } catch (e) {
             clearInterval(uploadTimer);
@@ -4081,13 +4249,23 @@
             }
         });
         setConstructorLoading('constructorBuildPivotBtn', true, 'Построение...');
+        // Показываем прогресс-бар
+        const progressContainer = document.getElementById('constructorPivotProgress');
+        const progressFill = document.getElementById('constructorPivotProgressFill');
+        const progressText = document.getElementById('constructorPivotProgressText');
+        const progressLabel = document.getElementById('constructorPivotProgressLabel');
+        if (progressContainer) progressContainer.style.display = 'block';
+        if (progressLabel) progressLabel.textContent = '⏳ Построение сводной таблицы...';
+        if (progressFill) progressFill.style.width = '0%';
+        if (progressText) progressText.textContent = '0%';
         try {
             const totalsModeRadio = document.querySelector('input[name="totalsMode"]:checked');
             const totalsMode = totalsModeRadio ? totalsModeRadio.value : 'none';
             // Собираем отмеченные колонки из "Отображаемые колонки"
             const checkedCols = document.querySelectorAll('.constructor-col-checkbox:checked');
             const selectedColumns = Array.from(checkedCols).map(cb => cb.value);
-            const res = await fetch('/api/constructor/pivot', {
+            // Запускаем асинхронное построение
+            const res = await fetch('/api/constructor/pivot_async', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -4104,8 +4282,57 @@
                     header_row: (constructorSheetHeaderConfig[constructorCurrentSheet]?.header_row) || 0,
                 })
             });
-            const data = await res.json();
-            if (data.error) throw new Error(data.error);
+            const asyncData = await res.json();
+            if (asyncData.error) throw new Error(asyncData.error);
+
+            const taskId = asyncData.task_id;
+            let cancelled = false;
+
+            // Обработчик отмены
+            const cancelBtn = document.getElementById('constructorPivotProgressCancel');
+            const cancelHandler = () => { cancelled = true; };
+            if (cancelBtn) cancelBtn.addEventListener('click', cancelHandler, { once: true });
+
+            // Поллинг статуса
+            let data = null;
+            while (!cancelled) {
+                await new Promise(r => setTimeout(r, 500)); // ждём 500мс
+                const statusRes = await fetch('/api/constructor/pivot_status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task_id: taskId })
+                });
+                const statusData = await statusRes.json();
+                if (statusData.error) throw new Error(statusData.error);
+
+                // Обновляем прогресс
+                const pct = Math.round((statusData.progress || 0) * 100);
+                if (progressFill) progressFill.style.width = pct + '%';
+                if (progressText) progressText.textContent = pct + '%';
+                if (progressLabel) {
+                    if (statusData.status === 'running') progressLabel.textContent = `⏳ Построение сводной... ${pct}%`;
+                    else if (statusData.status === 'queued') progressLabel.textContent = '⏳ В очереди...';
+                }
+
+                if (statusData.status === 'completed') {
+                    data = statusData.result;
+                    if (progressFill) progressFill.style.width = '100%';
+                    if (progressText) progressText.textContent = '100%';
+                    if (progressLabel) progressLabel.textContent = '✅ Готово!';
+                    break;
+                }
+                if (statusData.status === 'error') {
+                    throw new Error(statusData.error || 'Ошибка построения сводной');
+                }
+            }
+
+            if (cancelled) {
+                showMessage('constructorMessage', '❌ Построение отменено', 'warning');
+                return;
+            }
+
+            if (!data) throw new Error('Не удалось получить результат сводной таблицы');
+
             constructorLastPivotData = data.pivot_data;
             constructorLastPivotColumns = data.columns;
             constructorLastRowColumns = data.row_columns || [];
@@ -4122,8 +4349,14 @@
             showMessage('constructorMessage', 'Ошибка: ' + e.message, 'error');
         } finally {
             setConstructorLoading('constructorBuildPivotBtn', false);
+            // Скрываем прогресс-бар через 3 секунды
+            setTimeout(() => {
+                const pc = document.getElementById('constructorPivotProgress');
+                if (pc) pc.style.display = 'none';
+            }, 3000);
         }
     });
+
 
     // Скачивание результата
     document.getElementById('constructorDownloadBtn')?.addEventListener('click', async () => {
@@ -4165,7 +4398,47 @@
         }
     });
 
+    // Скачивание результата в CSV (client-side, без сервера)
+    document.getElementById('constructorDownloadCsvBtn')?.addEventListener('click', async () => {
+        const dataToDownload = constructorLastPivotData;
+        const columnsToDownload = constructorLastPivotColumns;
+        if (!dataToDownload || !columnsToDownload || dataToDownload.length === 0) {
+            showMessage('constructorMessage', 'Нет данных для скачивания. Сначала постройте сводную таблицу.', 'error');
+            return;
+        }
+        try {
+            // Функция экранирования поля CSV
+            function csvEscape(val) {
+                const str = String(val ?? '');
+                if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+                    return '"' + str.replace(/"/g, '""') + '"';
+                }
+                return str;
+            }
+            // Заголовки
+            const header = columnsToDownload.map(c => csvEscape(c)).join(',');
+            // Данные
+            const rows = dataToDownload.map(row => {
+                return columnsToDownload.map(col => csvEscape(row[col])).join(',');
+            });
+            const csv = '\uFEFF' + header + '\n' + rows.join('\n'); // BOM для Excel (UTF-8)
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'сводная_таблица.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showMessage('constructorMessage', '✅ CSV-файл скачан', 'success');
+        } catch (e) {
+            showMessage('constructorMessage', 'Ошибка: ' + e.message, 'error');
+        }
+    });
+
     // ------------------- СЦЕНАРИИ КОНСТРУКТОРА -------------------
+
 
     // Сохранение сценария
     document.getElementById('constructorSaveScenarioBtn')?.addEventListener('click', () => {
@@ -4757,6 +5030,140 @@
             }
         });
     })();
+
+    // ========== ГОРЯЧИЕ КЛАВИШИ ==========
+    document.addEventListener('keydown', (e) => {
+        // Escape — закрытие модалок/диалогов
+        if (e.key === 'Escape') {
+            const headerDialog = document.getElementById('constructorHeaderDialog');
+            const dsWarning = document.getElementById('deepseekWarningOverlay');
+            const scenarioPanel = document.getElementById('constructorScenarioPanel');
+            if (headerDialog && headerDialog.style.display === 'flex') {
+                closeHeaderDialog();
+                e.preventDefault();
+                return;
+            }
+            if (dsWarning && dsWarning.style.display === 'flex') {
+                document.getElementById('deepseekWarningCancel')?.click();
+                e.preventDefault();
+                return;
+            }
+            if (scenarioPanel && scenarioPanel.style.display === 'block') {
+                scenarioPanel.style.display = 'none';
+                document.getElementById('constructorScenarioSave').style.display = 'none';
+                document.getElementById('constructorScenarioLoad').style.display = 'none';
+                e.preventDefault();
+                return;
+            }
+            // Закрыть баннер обновления
+            if (document.getElementById('updateBanner').style.display === 'block') {
+                dismissUpdate();
+                e.preventDefault();
+                return;
+            }
+        }
+
+        // Ctrl+Enter — отправка сообщения в чате
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput && document.activeElement === chatInput && _ds.enabled) {
+                sendChatMessage();
+                e.preventDefault();
+                return;
+            }
+        }
+
+        // Ctrl+S — сохранение сценария конструктора
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            const scenarioSaveSection = document.getElementById('constructorScenarioSave');
+            if (scenarioSaveSection && scenarioSaveSection.style.display === 'block') {
+                document.getElementById('constructorScenarioSaveConfirm')?.click();
+                e.preventDefault();
+                return;
+            }
+            // Если панель сценария не открыта — ничего не делаем
+        }
+    });
+
+    // ========== DRAG & DROP для загрузки файлов ==========
+    function setupDragDrop(inputId, dropZoneId) {
+        const fileInput = document.getElementById(inputId);
+        const dropZone = document.getElementById(dropZoneId);
+        if (!fileInput || !dropZone) return;
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.add('drag-over-drop');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.remove('drag-over-drop');
+            });
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                // Триггерим событие change, чтобы код загрузки сработал
+                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+                // Визуально показываем имя файла
+                const statusEl = document.getElementById(inputId.replace('File', 'UploadStatus')) ||
+                                document.getElementById(inputId.replace('File', 'Message')) ||
+                                document.querySelector(`[data-drop-status="${inputId}"]`);
+            }
+        });
+    }
+
+    // Настраиваем Drag & Drop после загрузки DOM
+    document.addEventListener('DOMContentLoaded', function() {
+        // Конструктор — зона загрузки файла
+        const constructorDrop = document.getElementById('constructorStep1');
+        if (constructorDrop) {
+            constructorDrop.style.border = '2px dashed var(--border-color)';
+            constructorDrop.style.borderRadius = 'var(--radius-md)';
+            constructorDrop.style.padding = '20px';
+            constructorDrop.style.transition = 'border-color 0.2s, background 0.2s';
+            setupDragDrop('constructorFile', 'constructorStep1');
+
+            // Стиль для drag-over
+            const styleSheet = document.createElement('style');
+            styleSheet.textContent = `
+                .drag-over-drop {
+                    border-color: var(--accent-primary) !important;
+                    background: var(--bg-active) !important;
+                    opacity: 0.9;
+                }
+            `;
+            document.head.appendChild(styleSheet);
+        }
+
+        // Конвертер — зона загрузки файла
+        const converterSection = document.querySelector('#convert .form-group:first-child');
+        if (converterSection) {
+            const sourceFileInput = document.getElementById('sourceFile');
+            if (sourceFileInput) {
+                const sourceLabel = converterSection.querySelector('label');
+                const sourceDiv = sourceFileInput.parentElement;
+                if (sourceDiv) {
+                    sourceDiv.style.border = '2px dashed var(--border-color)';
+                    sourceDiv.style.borderRadius = 'var(--radius-md)';
+                    sourceDiv.style.padding = '20px';
+                    sourceDiv.style.transition = 'border-color 0.2s, background 0.2s';
+                    setupDragDrop('sourceFile', sourceDiv);
+                }
+            }
+        }
+    });
 </script>
 </body>
 </html>

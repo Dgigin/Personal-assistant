@@ -15,6 +15,8 @@ from flask import Flask, jsonify, render_template, request, session
 from flask_session import Session
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect, generate_csrf
+
 
 from src.config import Config
 from src.models.chat_db import init_db
@@ -76,6 +78,10 @@ logging.basicConfig(
 # Подавляем логи Werkzeug в консоли (оставляем в файле) — ERROR отсекает и development server warning
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
+# Waitress пишет WARNING при глубине очереди задач 1-2 — для одного пользователя это норма,
+# приглушаем до ERROR (реальные ошибки останутся)
+logging.getLogger('waitress.queue').setLevel(logging.ERROR)
+
 logger = logging.getLogger(__name__)
 
 
@@ -101,13 +107,60 @@ def create_app() -> Flask:
     Session(app)
 
     # Проверка SECRET_KEY при старте
-    if not Config.SECRET_KEY:
+    if not Config.SECRET_KEY or Config.SECRET_KEY == '__GENERATE_ME__':
+        import secrets
+        app.secret_key = secrets.token_hex(32)
         logger.warning(
-            'SECRET_KEY не задан! Установите переменную окружения SECRET_KEY. '
-            'Сессии Flask не защищены.'
+            'SECRET_KEY не задан. Сгенерирован временный ключ (%s...). '
+            'Сессии будут действовать до перезапуска сервера. '
+            'Для постоянного ключа задайте SECRET_KEY в .env',
+            app.secret_key[:8]
         )
 
+    # -----------------------------------------------------------------------
+    # CSRF-защита (Flask-WTF)
+    # -----------------------------------------------------------------------
+    app.config['WTF_CSRF_ENABLED'] = True
+    app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 час жизни токена
+    app.config['WTF_CSRF_SSL_STRICT'] = False  # Не требовать HTTPS для Referrer
+    app.config['WTF_CSRF_METHODS'] = ['POST', 'PUT', 'PATCH', 'DELETE']  # Явно указываем методы для CSRF-проверки
+    csrf = CSRFProtect()
+
+    # Исключаем public эндпоинты из CSRF-защиты
+    csrf.exempt('/api/health')
+    csrf.exempt('/api/check_update')
+    csrf.exempt('/api/check_update/status')
+    csrf.exempt('/api/check_update/update_progress')
+    # Исключаем эндпоинты, доступные до аутентификации
+    csrf.exempt('/api/auth_status')
+    csrf.exempt('/api/login')
+    csrf.exempt('/api/logout')
+    csrf.exempt('/api/csrf_token')
+    csrf.exempt('/api/chat/status')
+    csrf.exempt('/api/chat/toggle')
+    csrf.exempt('/')
+
+    csrf.init_app(app)
+
+    # -----------------------------------------------------------------------
+    # Обработчик CSRF-ошибок (через errorhandler 400)
+    # -----------------------------------------------------------------------
+    @app.errorhandler(400)
+    def bad_request_handler(e):
+        """Если CSRF-токен отсутствует или невалиден — отдаём JSON."""
+        # Проверяем, связана ли ошибка с CSRF
+        csrf_error = getattr(e, 'description', None)
+        if csrf_error and 'csrf' in str(csrf_error).lower():
+            logger.warning('CSRF-ошибка: %s', csrf_error)
+            return jsonify({
+                'error': 'CSRF-токен отсутствует или истёк. Обновите страницу.',
+                'csrf_required': True,
+            }), 400
+        # Обычная 400 ошибка
+        return jsonify({'error': 'Bad request'}), 400
+
     # Создаём директории при старте
+
     os.makedirs(Config.UPLOAD_DIR, exist_ok=True)
     os.makedirs(Config.PROFILES_DIR, exist_ok=True)
     os.makedirs(Config.CONFIG_DIR, exist_ok=True)
@@ -207,10 +260,12 @@ def create_app() -> Flask:
 
         # Пропускаем маршруты, не требующие аутентификации
         if request.path in ('/', '/api/auth_status', '/api/login', '/api/logout',
+                            '/api/csrf_token',
                             '/api/chat/status', '/api/chat/toggle',
                             '/api/check_update', '/api/check_update/status',
                             '/api/apply_update', '/api/apply_update/restart'):
             return None
+
 
         # Проверяем сессию (автоматически обновляет last_activity)
         if not check_session():
@@ -320,16 +375,18 @@ def create_app() -> Flask:
     # Health-check эндпоинт
     @app.route('/api/health')
     def health():
-        return jsonify({
-            'status': 'ok',
-            'tasks_file': os.path.exists(Config.TASKS_PATH),
-            'profiles_dir': os.path.exists(Config.PROFILES_DIR),
-            'departments_file': os.path.exists(Config.DEPARTMENTS_PATH),
-            'articles_file': os.path.exists(Config.ARTICLES_PATH),
-            'chat_db': os.path.exists(Config.CHAT_DB_PATH),
-        })
+        return jsonify({'status': 'ok'})
+
+    # -----------------------------------------------------------------------
+    # CSRF-токен для фронтенда
+    # -----------------------------------------------------------------------
+    @app.route('/api/csrf_token', methods=['GET'])
+    def get_csrf_token():
+        """Возвращает CSRF-токен для фронтенда."""
+        return jsonify({'csrf_token': generate_csrf()})
 
     return app
+
 
 
 if __name__ == '__main__':

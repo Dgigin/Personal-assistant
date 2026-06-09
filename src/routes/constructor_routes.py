@@ -30,6 +30,8 @@ from ..services.constructor import (
     _detect_header_row,
     apply_filters,
     build_pivot_table,
+    build_pivot_async,
+    get_pivot_task_status,
     save_pivot_to_xlsx,
     save_scenario,
     list_scenarios,
@@ -105,7 +107,7 @@ TEMP_FILES_JSON = os.path.join(Config.CONFIG_DIR, 'constructor_temp_files.json')
 
 
 def _load_temp_files() -> dict:
-    """Восстанавливает _temp_files из JSON-файла."""
+    """Восстанавливает _temp_files из JSON-файла, удаляя мёртвые записи."""
     if not os.path.exists(TEMP_FILES_JSON):
         return {}
     try:
@@ -118,7 +120,10 @@ def _load_temp_files() -> dict:
             if os.path.exists(path):
                 valid[fid] = info
             else:
-                logger.warning('Файл temp_file %s больше не существует на диске: %s', fid, path)
+                logger.info('Очищена мёртвая запись temp_file %s (файл удалён с диска): %s', fid, path)
+        # Сразу чистим JSON от мёртвых записей, чтобы не накапливать мусор
+        if len(valid) != len(data):
+            _save_temp_files(valid)
         return valid
     except Exception as e:
         logger.warning('Не удалось загрузить constructor_temp_files.json: %s', e)
@@ -169,8 +174,8 @@ def _clean_orphan_uploads() -> None:
             if fpath not in valid_paths:
                 try:
                     os.remove(fpath)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning('Не удалось удалить файл %s: %s', fpath, e)
 
 
 # Загружаем temp_files из JSON при старте модуля
@@ -208,6 +213,20 @@ def upload_excel():
 
     try:
         result = load_excel_file(temp_path)
+
+        # Поиск подходящих сценариев по имени файла
+        import os as _os
+        basename = _os.path.splitext(file.filename)[0].lower()
+        all_scenarios = list_scenarios()
+        suggested = []
+        for sc in all_scenarios:
+            sc_name = sc.get('name', '').lower()
+            # Совпадение: имя сценария совпадает с именем файла или содержит его
+            if sc_name == basename or basename in sc_name or sc_name in basename:
+                suggested.append(sc.get('name'))
+        if suggested:
+            result['suggested_scenarios'] = suggested[:3]  # не более 3
+
         # Сохраняем в временном хранилище (persist)
         _temp_files[file_id] = {
             'path': temp_path,
@@ -497,6 +516,99 @@ def pivot_table():
     except Exception as e:
         logger.error('Ошибка построения сводной: %s\n%s', e, traceback.format_exc())
         return jsonify({'error': f'Ошибка построения сводной таблицы: {str(e)}'}), 500
+
+
+# ==================== 4b. АСИНХРОННАЯ СВОДНАЯ ТАБЛИЦА ====================
+
+@constructor_bp.route('/api/constructor/pivot_async', methods=['POST'])
+def pivot_table_async():
+    """
+    Запускает построение сводной таблицы в фоновом потоке.
+    Тело запроса: те же параметры, что и /api/constructor/pivot
+    Возвращает: {task_id} для отслеживания статуса через /api/constructor/pivot_status
+    """
+    data = request.get_json()
+    file_id = data.get('file_id', '')
+    sheet_name = data.get('sheet_name', '')
+    rows = data.get('rows', [])
+    values = data.get('values', [])
+    cols = data.get('cols', None)
+    agg_functions = data.get('agg_functions', ['sum'])
+    output_format = data.get('output_format', 'flat')
+    filters = data.get('filters', None)
+    selected_columns = data.get('selected_columns', None)
+    totals_mode = data.get('totals_mode', 'none')
+    header_row = int(data.get('header_row', 0))
+
+    if not file_id or not sheet_name:
+        return jsonify({'error': 'Не указаны file_id и sheet_name'}), 400
+    if not rows or not values:
+        return jsonify({'error': 'Укажите строки (rows) и значения (values)'}), 400
+
+    file_info = _temp_files.get(file_id)
+    if not file_info:
+        return jsonify({'error': 'Файл не найден'}), 404
+
+    file_path = file_info['path']
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'Файл не найден на диске'}), 404
+
+    # Собираем аргументы для build_pivot_table
+    pivot_kwargs = {
+        'file_path': file_path,
+        'sheet_name': sheet_name,
+        'rows': rows,
+        'values': values,
+        'cols': cols,
+        'agg_functions': agg_functions,
+        'filters': filters,
+        'selected_columns': selected_columns,
+        'output_format': output_format,
+        'cached_df': file_info.get('cached_df'),
+        'totals_mode': totals_mode,
+        'header_row': header_row,
+    }
+
+    try:
+        task_id = build_pivot_async(**pivot_kwargs)
+        return jsonify({
+            'task_id': task_id,
+            'status': 'queued',
+            'message': 'Сводная таблица строится в фоне',
+        })
+    except Exception as e:
+        logger.error('Ошибка запуска асинхронного pivot: %s', e)
+        return jsonify({'error': f'Ошибка запуска: {str(e)}'}), 500
+
+
+@constructor_bp.route('/api/constructor/pivot_status', methods=['POST'])
+def pivot_table_status():
+    """
+    Возвращает статус асинхронной задачи построения сводной таблицы.
+    Тело запроса: {task_id}
+    Возвращает: {status, progress, result?, error?}
+    """
+    data = request.get_json()
+    task_id = data.get('task_id', '')
+
+    if not task_id:
+        return jsonify({'error': 'Не указан task_id'}), 400
+
+    status = get_pivot_task_status(task_id)
+    if status is None:
+        return jsonify({'error': 'Задача не найдена'}), 404
+
+    # Если задача завершена, санитизируем результат перед отправкой
+    result = status.get('result')
+    if result is not None:
+        result = _sanitize_for_json(result)
+
+    return jsonify({
+        'status': status['status'],
+        'progress': status['progress'],
+        'result': result,
+        'error': status.get('error'),
+    })
 
 
 # ==================== 5. СКАЧИВАНИЕ РЕЗУЛЬТАТА ====================

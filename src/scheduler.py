@@ -79,23 +79,28 @@ def start_schedulers(
     :param config_dir: Путь к директории config (для задач)
     :return: Экземпляр BackgroundScheduler
     """
+    # Приглушаем штатные логи APScheduler (добавление задач, старт и т.п.)
+    # Ошибки (WARNING/ERROR) продолжат выводиться
+    logging.getLogger('apscheduler.scheduler').setLevel(logging.WARNING)
+
     scheduler = BackgroundScheduler()
+
+    errors = []
 
     # ------------------------------------------------------------------
     # 1. Планировщик очистки старых загруженных файлов
     # ------------------------------------------------------------------
-    scheduler.add_job(
-        func=lambda: clean_old_uploads(upload_dir, upload_max_age_seconds),
-        trigger='interval',
-        seconds=cleanup_interval_seconds,
-        id='cleanup_uploads',
-        name='Очистка старых загруженных файлов',
-        replace_existing=True,
-    )
-    logger.info(
-        'Планировщик очистки uploads запущен: каждые %d сек',
-        cleanup_interval_seconds,
-    )
+    try:
+        scheduler.add_job(
+            func=lambda: clean_old_uploads(upload_dir, upload_max_age_seconds),
+            trigger='interval',
+            seconds=cleanup_interval_seconds,
+            id='cleanup_uploads',
+            name='Очистка старых загруженных файлов',
+            replace_existing=True,
+        )
+    except Exception as e:
+        errors.append(f'Очистка загруженных файлов: {e}')
 
     # ------------------------------------------------------------------
     # 2. Планировщик архивации выполненных задач
@@ -105,36 +110,44 @@ def start_schedulers(
             tasks = load_tasks(config_dir)
             tasks = archive_completed_tasks(tasks)
             save_tasks(config_dir, tasks)
-            logger.debug('Архивация задач выполнена')
         except Exception as e:
             logger.error('Ошибка при фоновой архивации задач: %s', e)
 
-    scheduler.add_job(
-        func=_archive_job,
-        trigger='interval',
-        seconds=300,  # каждые 5 минут
-        id='archive_tasks',
-        name='Архивация выполненных задач',
-        replace_existing=True,
-    )
-    logger.info('Планировщик архивации задач запущен: каждые %d сек', 300)
+    try:
+        scheduler.add_job(
+            func=_archive_job,
+            trigger='interval',
+            seconds=300,  # каждые 5 минут
+            id='archive_tasks',
+            name='Архивация выполненных задач',
+            replace_existing=True,
+        )
+    except Exception as e:
+        errors.append(f'Архивация задач: {e}')
 
     # ------------------------------------------------------------------
     # 3. Планировщик очистки устаревших файлов сессий
     #    Запускается каждые 6 часов, удаляет файлы старше 7 дней
     # ------------------------------------------------------------------
-    scheduler.add_job(
-        func=lambda: _cleanup_old_session_files(session_dir, max_age_days=7),
-        trigger='interval',
-        hours=6,
-        id='cleanup_sessions',
-        name='Очистка устаревших файлов сессий',
-        replace_existing=True,
-    )
-    logger.info(
-        'Планировщик очистки сессий запущен: каждые %d часов, удалять старше %d дней',
-        6, 7,
-    )
+    try:
+        scheduler.add_job(
+            func=lambda: _cleanup_old_session_files(session_dir, max_age_days=7),
+            trigger='interval',
+            hours=6,
+            id='cleanup_sessions',
+            name='Очистка устаревших файлов сессий',
+            replace_existing=True,
+        )
+    except Exception as e:
+        errors.append(f'Очистка сессий: {e}')
+
+    if errors:
+        logger.warning(
+            'Планировщики запущены с ошибками: %s',
+            '; '.join(errors),
+        )
+    else:
+        logger.info('Все планировщики успешно запущены')
 
     scheduler.start()
 
