@@ -332,6 +332,18 @@ def main():
     # Запускаем приложение через subprocess (надёжнее, чем start в batch)
     python_exe = "{python}"
     app_script = "{app}"
+
+    # Устанавливаем/обновляем зависимости (если изменились)
+    req_path = os.path.join(target_dir, "requirements.txt")
+    if os.path.exists(req_path):
+        print("[*] Установка зависимостей...")
+        ret = subprocess.call([python_exe, "-m", "pip", "install", "--user", "-r", req_path],
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if ret == 0:
+            print("[OK] Зависимости установлены")
+        else:
+            print("[!] Ошибка установки зависимостей. Установите вручную: pip install -r requirements.txt")
+
     print("Запуск приложения...")
     try:
         subprocess.Popen([python_exe, app_script])

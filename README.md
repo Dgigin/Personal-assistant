@@ -1,7 +1,7 @@
 # Personal Assistant
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.1.1-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.2.1-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/python-3.8+-brightgreen.svg" alt="Python">
   <img src="https://img.shields.io/badge/flask-3.x-blueviolet.svg" alt="Flask">
@@ -52,12 +52,18 @@
 - Сворачивание групп с отображением количества задач
 - Кликабельные ссылки в тексте задач
 
+### 🛡️ Безопасность (v1.2.0+)
+- **CSRF-защита** — все мутирующие запросы (POST/PUT/PATCH/DELETE) защищены через Flask-WTF CSRFProtect
+- Токен передаётся в заголовке `X-CSRFToken`, обновляется после входа
+- Rate limiting на `/api/login` (5 запросов в минуту)
+
 ### 🎨 Интерфейс
 - **Тёмная и светлая темы** — переключение в один клик, выбор сохраняется в `localStorage`
 - **Адаптивная двухколоночная вёрстка**
 - **Автообновление** — приложение само проверяет наличие новой версии на GitHub
 
 ### 🔄 Система автообновления
+
 - Периодическая проверка обновлений (раз в 6 часов)
 - Уведомление о доступной новой версии с описанием изменений
 - Автоматическое скачивание и установка обновления через веб-интерфейс
@@ -127,6 +133,8 @@ python wsgi.py
 | AI-чат | DeepSeek API (streaming) |
 | Фронтенд | Vanilla JS SPA |
 | Планировщик | APScheduler |
+| CSRF-защита | Flask-WTF 1.2.2 |
+| Rate limiting | Flask-Limiter 4.1.1 |
 | Сборка установщика | Inno Setup |
 
 ---
