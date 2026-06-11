@@ -79,9 +79,10 @@ def start_schedulers(
     :param config_dir: Путь к директории config (для задач)
     :return: Экземпляр BackgroundScheduler
     """
-    # Приглушаем штатные логи APScheduler (добавление задач, старт и т.п.)
+    # Приглушаем штатные логи APScheduler (добавление задач, старт, выполнение и т.п.)
     # Ошибки (WARNING/ERROR) продолжат выводиться
     logging.getLogger('apscheduler.scheduler').setLevel(logging.WARNING)
+    logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING)
 
     scheduler = BackgroundScheduler()
 
