@@ -5,8 +5,12 @@ REST-маршруты для блокнота задач (/api/tasks).
 
 import time
 import os
+import uuid
+import logging
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill
 
 from ..config import Config
 from ..models.tasks import (
@@ -14,13 +18,33 @@ from ..models.tasks import (
     save_tasks,
     archive_completed_tasks,
     ensure_order_field,
+    STATUS_ACTIVE,
+    STATUS_ARCHIVED,
+    STATUS_CANCELLED,
 )
+
+logger = logging.getLogger(__name__)
 
 task_bp = Blueprint('tasks', __name__)
 
 
 def _get_config_dir():
     return Config.CONFIG_DIR
+
+
+def _cfg(*parts):
+    """Вспомогательная функция: возвращает путь к поддиректориям."""
+    if not parts:
+        return Config.USER_DATA_DIR
+    first = parts[0]
+    rest = parts[1:]
+    if first == 'config':
+        return os.path.join(Config.CONFIG_DIR, *rest)
+    elif first == 'profiles':
+        return os.path.join(Config.PROFILES_DIR, *rest)
+    elif first == 'uploads':
+        return os.path.join(Config.UPLOAD_DIR, *rest)
+    return os.path.join(Config.BASE_DIR, *parts)
 
 
 @task_bp.route('/api/tasks', methods=['GET'])
@@ -134,3 +158,88 @@ def move_task(task_id, direction):
     tasks.sort(key=lambda x: x.get('order', 0))
     save_tasks(config_dir, tasks)
     return jsonify({'success': True})
+
+
+def _format_dt(ts):
+    """Форматирует timestamp в строку ДД.ММ.ГГГГ ЧЧ:ММ."""
+    if not ts:
+        return ''
+    from datetime import datetime as dt
+    return dt.fromtimestamp(ts).strftime('%d.%m.%Y %H:%M')
+
+
+def _status_label(status):
+    labels = {
+        STATUS_ACTIVE: 'Активно',
+        STATUS_ARCHIVED: 'В архиве',
+        STATUS_CANCELLED: 'Отменено',
+    }
+    return labels.get(status, status)
+
+
+@task_bp.route('/api/tasks/download', methods=['GET'])
+def download_tasks():
+    """
+    Генерирует XLSX-файл со всеми задачами и возвращает его для скачивания.
+    """
+    config_dir = _get_config_dir()
+    tasks = load_tasks(config_dir)
+    tasks = archive_completed_tasks(tasks)
+    tasks = ensure_order_field(tasks)
+    tasks.sort(key=lambda x: x.get('order', 0))
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Задачи'
+
+    # Стили
+    header_font = Font(bold=True, color='FFFFFF', size=11)
+    header_fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
+    header_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    body_align = Alignment(vertical='top', wrap_text=True)
+
+    # Заголовки
+    headers = ['№', 'Текст задачи', 'Статус', 'Выполнена', 'Дата создания',
+               'Дата выполнения', 'Дата отмены', 'Причина отмены']
+    col_widths = [6, 50, 12, 10, 16, 16, 16, 30]
+
+    for col_idx, (h, w) in enumerate(zip(headers, col_widths), 1):
+        cell = ws.cell(row=1, column=col_idx, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_align
+        ws.column_dimensions[chr(64 + col_idx)].width = w
+
+    # Данные
+    for row_idx, task in enumerate(tasks, 2):
+        ws.cell(row=row_idx, column=1, value=task.get('order', row_idx - 1)).alignment = Alignment(horizontal='center')
+        ws.cell(row=row_idx, column=2, value=task.get('text', '')).alignment = body_align
+        ws.cell(row=row_idx, column=3, value=_status_label(task.get('status', ''))).alignment = body_align
+        ws.cell(row=row_idx, column=4, value='Да' if task.get('completed') else 'Нет').alignment = Alignment(horizontal='center')
+        ws.cell(row=row_idx, column=5, value=_format_dt(task.get('created_at'))).alignment = body_align
+        ws.cell(row=row_idx, column=6, value=_format_dt(task.get('completed_at'))).alignment = body_align
+        ws.cell(row=row_idx, column=7, value=_format_dt(task.get('cancelled_at'))).alignment = body_align
+        ws.cell(row=row_idx, column=8, value=task.get('cancelled_comment', '') or '').alignment = body_align
+
+    # Фиксация первой строки
+    ws.freeze_panes = 'A2'
+
+    # Сохраняем во временный файл
+    upload_dir = _cfg('uploads')
+    os.makedirs(upload_dir, exist_ok=True)
+    file_id = uuid.uuid4().hex
+    temp_path = os.path.join(upload_dir, f'temp_result_{file_id}.xlsx')
+    wb.save(temp_path)
+
+    try:
+        return send_file(
+            temp_path,
+            as_attachment=True,
+            download_name='задачи.xlsx',
+        )
+    finally:
+        # Удаляем temp-файл после отправки
+        try:
+            os.remove(temp_path)
+        except Exception:
+            pass

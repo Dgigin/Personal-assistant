@@ -9,6 +9,7 @@
 """
 
 import os
+import time
 import logging
 import atexit
 from datetime import datetime, timedelta
@@ -20,21 +21,70 @@ from src.utils.file_utils import clean_old_uploads
 
 logger = logging.getLogger(__name__)
 
+# Максимальное количество попыток удаления файла на Windows (из-за блокировок)
+_MAX_DELETE_RETRIES = 3
+_DELETE_RETRY_DELAY = 0.5  # секунд
+
+
+def _safe_remove(filepath: str) -> bool:
+    """
+    Безопасное удаление файла с повторными попытками на случай блокировки
+    другими процессами (типичная проблема Windows с PermissionError).
+    Возвращает True, если файл успешно удалён, иначе False.
+    """
+    for attempt in range(1, _MAX_DELETE_RETRIES + 1):
+        try:
+            os.remove(filepath)
+            return True
+        except PermissionError as e:
+            if attempt < _MAX_DELETE_RETRIES:
+                logger.debug(
+                    'Попытка %d/%d: файл %s занят, повтор через %.1fс...',
+                    attempt, _MAX_DELETE_RETRIES, filepath, _DELETE_RETRY_DELAY,
+                )
+                time.sleep(_DELETE_RETRY_DELAY)
+            else:
+                logger.warning(
+                    'Не удалось удалить файл %s после %d попыток: %s',
+                    filepath, _MAX_DELETE_RETRIES, e,
+                )
+                return False
+        except FileNotFoundError:
+            # Файл уже удалён — не ошибка
+            return True
+        except Exception as e:
+            logger.warning('Ошибка при удалении файла %s: %s', filepath, e)
+            return False
+    return False
+
+
+def _remove_session_files_in_dir(session_dir: str) -> int:
+    """
+    Удаляет все файлы сессий в директории.
+    Возвращает количество успешно удалённых файлов.
+    """
+    if not os.path.exists(session_dir):
+        return 0
+
+    count = 0
+    for fname in os.listdir(session_dir):
+        fpath = os.path.join(session_dir, fname)
+        if os.path.isfile(fpath):
+            if _safe_remove(fpath):
+                count += 1
+    return count
+
 
 def cleanup_session_files_at_startup(session_dir: str) -> None:
     """
     Удаляет все файлы сессий из директории flask_session при старте.
     После перезапуска сервера все старые сессии становятся невалидными,
     поэтому их можно безопасно удалить.
+    Использует повторные попытки для обхода блокировок Windows.
     """
     try:
-        if not os.path.exists(session_dir):
-            return
-        for fname in os.listdir(session_dir):
-            fpath = os.path.join(session_dir, fname)
-            if os.path.isfile(fpath):
-                os.remove(fpath)
-        logger.info('Очищены файлы сессий при старте приложения')
+        removed = _remove_session_files_in_dir(session_dir)
+        logger.info('Очищено %d файлов сессий при старте приложения', removed)
     except Exception as e:
         logger.warning('Не удалось очистить файлы сессий: %s', e)
 
@@ -43,6 +93,7 @@ def _cleanup_old_session_files(session_dir: str, max_age_days: int = 7) -> None:
     """
     Периодическая очистка устаревших файлов сессий.
     Удаляет файлы сессий, которые не изменялись дольше max_age_days дней.
+    Использует повторные попытки для обхода блокировок Windows.
     """
     try:
         if not os.path.exists(session_dir):
@@ -54,8 +105,8 @@ def _cleanup_old_session_files(session_dir: str, max_age_days: int = 7) -> None:
             if os.path.isfile(fpath):
                 mtime = datetime.fromtimestamp(os.path.getmtime(fpath))
                 if now - mtime > timedelta(days=max_age_days):
-                    os.remove(fpath)
-                    count += 1
+                    if _safe_remove(fpath):
+                        count += 1
         if count > 0:
             logger.info('Очищено %d устаревших файлов сессий (старше %d дней)', count, max_age_days)
     except Exception as e:
@@ -122,6 +173,7 @@ def start_schedulers(
             id='archive_tasks',
             name='Архивация выполненных задач',
             replace_existing=True,
+            misfire_grace_time=30,
         )
     except Exception as e:
         errors.append(f'Архивация задач: {e}')

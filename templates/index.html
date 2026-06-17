@@ -780,6 +780,7 @@
         .active-tasks-extra { border-top:1px dashed var(--border-light); margin-top:6px; padding-top:6px; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script>
@@ -879,7 +880,7 @@
     <div style="display:flex; align-items:center; gap:8px; margin-bottom:2px; min-height:22px;">
         <div id="versionIndicator" title="Версия приложения" style="cursor:pointer;">
             <span class="version-dot"></span>
-            <span id="versionText">v1.0.0</span>
+            <span id="versionText">v...</span>
         </div>
         <div id="updateToast" class="update-toast"></div>
     </div>
@@ -906,6 +907,8 @@
                 <div class="sidebar-group">
                     <div class="sidebar-group-label">🔧 Анализ</div>
                     <button class="tab-btn" data-tab="constructor" title="Конструктор сводных таблиц">🔧 Конструктор</button>
+                    <button class="tab-btn" data-tab="charts" title="Визуализация: графики и диаграммы">📊 Графики</button>
+                    <button class="tab-btn" data-tab="reports" title="Конструктор отчётов">📈 Отчёты</button>
                 </div>
                 <div class="sidebar-group">
                     <div class="sidebar-group-label">🤖 AI</div>
@@ -1084,6 +1087,51 @@
                         <button id="constructorApplyFiltersBtn" class="btn-sm btn-success" style="margin-top:5px;" title="Применить все фильтры к данным">✅ Применить</button>
                     </details>
 
+                    <!-- Слайсеры (интерактивные фильтры) - п.6 -->
+                    <details>
+                        <summary>🎚️ Слайсеры (интерактивные фильтры)</summary>
+                        <div style="margin-top:10px;">
+                            <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+                                <span style="font-size:13px; color:var(--text-secondary);">Выберите колонку для слайсера:</span>
+                                <select id="constructorSlicerColumn" class="bg-card border-input" style="flex:1; min-width:150px; padding:4px 8px; border-radius:4px; color:var(--text-primary);">
+                                    <option value="">— выберите колонку —</option>
+                                </select>
+                                <button id="constructorSlicerLoadBtn" class="btn-sm btn-secondary" title="Загрузить данные для слайсера">📥 Загрузить</button>
+                            </div>
+                            <div id="constructorSlicerContainer" style="display:none; padding:12px; background:var(--bg-attached); border:1px solid var(--border-light); border-radius:var(--radius-sm); margin-top:8px;">
+                                <div id="constructorSlicerContent"></div>
+                                <div style="margin-top:8px; display:flex; gap:8px;">
+                                    <button id="constructorSlicerApplyBtn" class="btn-sm btn-success" title="Применить слайсер к данным">✅ Применить</button>
+                                    <button id="constructorSlicerResetBtn" class="btn-sm btn-secondary" title="Сбросить все слайсеры">🔄 Сбросить</button>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+
+                    <!-- Вычисляемые колонки (Calculated Fields) - п.8 -->
+                    <details>
+                        <summary>🧮 Вычисляемые колонки</summary>
+                        <div style="margin-top:10px;">
+                            <div class="flex-row" style="gap:8px;">
+                                <div class="form-group" style="flex:1;">
+                                    <label>Имя новой колонки</label>
+                                    <input type="text" id="constructorCalculatedName" placeholder="Например: Выручка_с_НДС" class="bg-card border-input" style="width:100%; padding:6px; border-radius:4px; color:var(--text-primary);">
+                                </div>
+                                <div class="form-group" style="flex:2;">
+                                    <label>Формула</label>
+                                    <input type="text" id="constructorCalculatedFormula" placeholder="Например: {Цена} * {Количество} * (1 + {НДС}/100)" class="bg-card border-input" style="width:100%; padding:6px; border-radius:4px; color:var(--text-primary);">
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                <button id="constructorCalculatedSaveBtn" class="btn-sm btn-success" title="Сохранить вычисляемую колонку">💾 Сохранить</button>
+                                <button id="constructorCalculatedApplyBtn" class="btn-sm btn-secondary" title="Применить вычисляемую колонку к данным">✅ Применить</button>
+                                <button id="constructorCalculatedRemoveBtn" class="btn-sm btn-danger" title="Удалить последнюю вычисляемую колонку">🗑 Удалить</button>
+                                <span style="font-size:11px; color:var(--text-muted);">Поддержка: +, -, *, /, SUM, AVG, IF, ROUND, CONCAT</span>
+                            </div>
+                            <div id="constructorCalculatedList" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+                        </div>
+                    </details>
+
                     <!-- Сводная таблица -->
                     <details open>
                         <summary>📊 Сводная таблица</summary>
@@ -1216,9 +1264,240 @@
 
                             </table>
                         </div>
+                        <!-- Условное форматирование (Conditional Formatting) - п.7 -->
+                        <div id="constructorConditionalSection" style="margin-top:15px; padding:12px; background:var(--bg-attached); border:1px solid var(--border-light); border-radius:var(--radius-sm); display:none;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:600; font-size:13px;">🎨 Условное форматирование</span>
+                                <div style="display:flex; gap:6px;">
+                                    <button id="constructorConditionalAddBtn" class="btn-sm btn-secondary">➕ Добавить правило</button>
+                                    <button id="constructorConditionalApplyBtn" class="btn-sm btn-success">✅ Применить</button>
+                                    <button id="constructorConditionalClearBtn" class="btn-sm btn-danger">🗑 Очистить</button>
+                                </div>
+                            </div>
+                            <div id="constructorConditionalRules" style="margin-top:8px;"></div>
+                            <div style="margin-top:8px; display:flex; gap:16px; flex-wrap:wrap;">
+                                <label style="font-size:12px; color:var(--text-secondary);"><input type="radio" name="cfMode" value="fill" checked> Заливка</label>
+                                <label style="font-size:12px; color:var(--text-secondary);"><input type="radio" name="cfMode" value="databar"> Data bars</label>
+                                <label style="font-size:12px; color:var(--text-secondary);"><input type="radio" name="cfMode" value="colorscale"> Color scale</label>
+                            </div>
+                        </div>
                     </div>
-                    <div id="constructorMessage"></div>
+                     <div id="constructorMessage"></div>
+                 </div>
+             </div>
+
+            <!-- Вкладка Графики и диаграммы -->
+            <div id="charts" class="tab-pane">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin:0;">📊 Визуализатор графиков</h2>
+                    <div style="display:flex; gap:6px;">
+                        <button id="chartsResetBtn" class="btn-secondary btn-sm" title="Сбросить настройки графика">🔄 Сбросить</button>
+                    </div>
                 </div>
+                <p style="color:var(--text-secondary); font-size:14px; margin-bottom:15px;">
+                    Стройте наглядные графики на основе данных из конструктора или вводите данные вручную.
+                    <button id="chartsExportPngBtn" class="btn-secondary btn-sm" style="margin-left:8px;" title="Скачать график как PNG">⬇ Скачать PNG</button>
+                </p>
+
+                <!-- Настройки графика -->
+                <div id="chartsConfigArea">
+                    <!-- Тип графика -->
+                    <div class="flex-row" style="gap:8px; margin-bottom:15px;">
+                        <div class="form-group" style="flex:1; min-width:180px;">
+                            <label>📈 Тип графика</label>
+                            <select id="chartsTypeSelect" style="width:100%; padding:8px; border:1px solid var(--border-input); border-radius:var(--radius-sm); background:var(--bg-input); color:var(--text-primary);" title="Выберите тип визуализации">
+                                <optgroup label="📊 Столбчатые">
+                                    <option value="bar" selected>📊 Столбчатая (вертикальная)</option>
+                                    <option value="grouped-bar">📊 Группированная столбчатая</option>
+                                    <option value="stacked-bar">📊 С накоплением (stacked)</option>
+                                    <option value="horizontalBar">📊 Горизонтальная столбчатая</option>
+                                </optgroup>
+                                <optgroup label="📈 Линейные">
+                                    <option value="line">📈 Линейная</option>
+                                    <option value="smooth-line">📈 Сглаженная линия</option>
+                                    <option value="step-line">📈 Ступенчатая линия</option>
+                                </optgroup>
+                                <optgroup label="🥧 Круговые">
+                                    <option value="pie">🥧 Круговая</option>
+                                    <option value="doughnut">🍩 Кольцевая</option>
+                                    <option value="polarArea">🔄 Полярная</option>
+                                </optgroup>
+                                <optgroup label="🕸 Специальные">
+                                    <option value="radar">🕸 Радар</option>
+                                    <option value="scatter">🔵 Точечная (scatter)</option>
+                                    <option value="bubble">🫧 Пузырьковая</option>
+                                    <option value="heatmap">🔥 Тепловая карта</option>
+                                    <option value="mixed">🔀 Комбинированная (столбцы+линия)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex:1; min-width:180px;">
+                            <label>📋 Источник данных</label>
+                            <select id="chartsSourceSelect" style="width:100%; padding:8px; border:1px solid var(--border-input); border-radius:var(--radius-sm); background:var(--bg-input); color:var(--text-primary);" title="Выберите источник данных для графика">
+                                <option value="pivot">📊 Из сводной таблицы (Конструктор)</option>
+                                <option value="manual">✏️ Ручной ввод данных</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Настройки -->
+                    <div class="flex-row" style="gap:8px; margin-bottom:15px;">
+                        <div class="form-group" style="flex:2;">
+                            <label>🏷 Название графика</label>
+                            <input type="text" id="chartsTitle" placeholder="Название графика..." class="bg-card border-input" style="width:100%; padding:8px; border-radius:var(--radius-sm); color:var(--text-primary);" value="График из сводной таблицы">
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>🎨 Цветовая схема</label>
+                            <select id="chartsColorScheme" style="width:100%; padding:8px; border:1px solid var(--border-input); border-radius:var(--radius-sm); background:var(--bg-input); color:var(--text-primary);">
+                                <option value="default">По умолчанию</option>
+                                <option value="pastel">Пастельные тона</option>
+                                <option value="vivid">Яркие цвета</option>
+                                <option value="monochrome">Монохром (синий)</option>
+                                <option value="warm">Тёплые тона</option>
+                                <option value="cool">Холодные тона</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>📐 Стиль</label>
+                            <select id="chartsStyleSelect" style="width:100%; padding:8px; border:1px solid var(--border-input); border-radius:var(--radius-sm); background:var(--bg-input); color:var(--text-primary);">
+                                <option value="modern">Современный (2D)</option>
+                                <option value="3d">3D-эффект</option>
+                                <option value="minimal">Минималистичный</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Дополнительные опции -->
+                    <details style="margin-bottom:15px;">
+                        <summary>⚙️ Дополнительные настройки</summary>
+                        <div style="margin-top:10px;">
+                            <div class="flex-row" style="gap:12px;">
+                                <div class="form-group" style="flex:1;">
+                                    <label><input type="checkbox" id="chartsShowLegend" checked> Показывать легенду</label>
+                                </div>
+                                <div class="form-group" style="flex:1;">
+                                    <label><input type="checkbox" id="chartsShowLabels" checked> Показывать подписи данных</label>
+                                </div>
+                                <div class="form-group" style="flex:1;">
+                                    <label><input type="checkbox" id="chartsShowGrid"> Сетка</label>
+                                </div>
+                                <div class="form-group" style="flex:1;">
+                                    <label><input type="checkbox" id="chartsAnimate" checked> Анимация</label>
+                                </div>
+                            </div>
+                            <div class="flex-row" style="gap:12px; margin-top:8px;">
+                                <div class="form-group" style="flex:1;">
+                                    <label>Прозрачность заливки</label>
+                                    <input type="range" id="chartsFillOpacity" min="0" max="100" value="50" style="width:100%;">
+                                    <span id="chartsFillOpacityValue" style="font-size:12px; color:var(--text-muted);">50%</span>
+                                </div>
+                                <div class="form-group" style="flex:1;">
+                                    <label>Толщина линии</label>
+                                    <input type="range" id="chartsBorderWidth" min="1" max="10" value="2" style="width:100%;">
+                                    <span id="chartsBorderWidthValue" style="font-size:12px; color:var(--text-muted);">2px</span>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+
+                    <!-- Кнопка построения -->
+                    <div style="margin-bottom:15px;">
+                        <button id="chartsBuildBtn" class="btn-success" style="padding:10px 24px; font-size:15px;" title="Построить график по выбранным настройкам">📊 Построить график</button>
+                        <span id="chartsDataInfo" style="margin-left:12px; font-size:12px; color:var(--text-muted);"></span>
+                    </div>
+                </div>
+
+                <!-- Ручной ввод данных (показывается при source=manual) -->
+                <div id="chartsManualInput" style="display:none; margin-bottom:15px; padding:15px; background:var(--bg-mapping); border:1px solid var(--border-light); border-radius:var(--radius-md);">
+                    <h3 style="margin:0 0 10px 0;">✏️ Ручной ввод данных</h3>
+                    <div class="flex-row" style="gap:8px; margin-bottom:10px;">
+                        <div class="form-group" style="flex:2;">
+                            <label>Метки (через запятую)</label>
+                            <input type="text" id="chartsManualLabels" placeholder="Янв, Фев, Мар, Апр..." class="bg-card border-input" style="width:100%; padding:6px; border-radius:var(--radius-sm); color:var(--text-primary);">
+                        </div>
+                        <div class="form-group" style="flex:2;">
+                            <label>Значения (через запятую)</label>
+                            <input type="text" id="chartsManualValues" placeholder="100, 200, 150, 300..." class="bg-card border-input" style="width:100%; padding:6px; border-radius:var(--radius-sm); color:var(--text-primary);">
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>Название ряда</label>
+                            <input type="text" id="chartsManualSeries" placeholder="Ряд 1" class="bg-card border-input" style="width:100%; padding:6px; border-radius:var(--radius-sm); color:var(--text-primary);" value="Ряд 1">
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button id="chartsManualAddSeries" class="btn-sm btn-secondary" title="Добавить ещё один ряд данных">➕ Добавить ряд</button>
+                        <span style="font-size:11px; color:var(--text-muted); align-self:center;">Для scatter и bubble: X,Y,размер</span>
+                    </div>
+                    <div id="chartsManualExtraSeries" style="margin-top:8px;"></div>
+                </div>
+
+                <!-- Холст для графика -->
+                <div id="chartsCanvasContainer" style="position:relative; background:var(--bg-card); border:1px solid var(--border-light); border-radius:var(--radius-md); padding:20px; min-height:200px;">
+                    <canvas id="chartsCanvas" style="width:100%; height:400px;"></canvas>
+                    <div id="chartsPlaceholder" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; color:var(--text-muted);">
+                        <div style="font-size:48px;">📊</div>
+                        <div style="margin-top:10px;">Настройте параметры и нажмите «Построить график»</div>
+                    </div>
+                </div>
+                <div id="chartsMessage" style="margin-top:10px;"></div>
+            </div>
+
+            <!-- Вкладка Отчёты -->
+            <div id="reports" class="tab-pane">
+                <h2 style="margin:0;">📈 Конструктор отчётов</h2>
+                <p style="color:var(--text-secondary); font-size:14px; margin-bottom:15px;">
+                    Создавайте настраиваемые отчёты с блоками: текст, таблица, график, метрики. 
+                    <button id="reportNewBtn" class="btn-success btn-sm" title="Создать новый отчёт">➕ Новый отчёт</button>
+                    <button id="reportSaveBtn" class="btn-secondary btn-sm" title="Сохранить текущий отчёт">💾 Сохранить</button>
+                    <button id="reportLoadBtn" class="btn-secondary btn-sm" title="Загрузить отчёт">📂 Загрузить</button>
+                    <button id="reportExportBtn" class="btn-secondary btn-sm" title="Экспорт в XLSX">⬇ Экспорт XLSX</button>
+                    <button id="reportDeleteBtn" class="btn-danger btn-sm" title="Удалить отчёт">🗑 Удалить</button>
+                </p>
+                <div id="reportEditorArea" style="display:none;">
+                    <div class="form-group">
+                        <label>Название отчёта</label>
+                        <input type="text" id="reportTitle" placeholder="Введите название отчёта..." class="bg-card border-input" style="width:100%; padding:8px 12px; border-radius:var(--radius-sm); font-size:15px; color:var(--text-primary);">
+                    </div>
+                    <div style="display:flex; gap:6px; margin-bottom:15px; flex-wrap:wrap;">
+                        <button id="reportAddTextBlock" class="btn-sm btn-secondary">📝 Текст</button>
+                        <button id="reportAddTableBlock" class="btn-sm btn-secondary">📊 Таблица данных</button>
+                        <button id="reportAddPivotBlock" class="btn-sm btn-secondary">📋 Сводная таблица</button>
+                        <button id="reportAddChartBlock" class="btn-sm btn-secondary">📈 График</button>
+                        <button id="reportAddMetricsBlock" class="btn-sm btn-secondary">📊 Метрики (KPI)</button>
+                        <button id="reportPreviewBtn" class="btn-sm btn-success" style="margin-left:auto;">👁 Предпросмотр</button>
+                    </div>
+                    <div id="reportBlocksContainer" class="bg-mapping border-input" style="padding:12px; border-radius:var(--radius-md); min-height:200px; display:flex; flex-direction:column; gap:12px;">
+                        <div class="empty-text" style="padding:40px; text-align:center; color:var(--text-muted);">Нажмите кнопку выше, чтобы добавить блок в отчёт</div>
+                    </div>
+                </div>
+                <div id="reportDeleteConfirmOverlay" class="modal-overlay" style="z-index:9996; display:none;">
+                    <div class="modal-content" style="padding:30px; width:380px; text-align:center;">
+                        <h3 style="margin-top:0;">🗑 Удалить отчёт?</h3>
+                        <p style="color:var(--text-secondary);">Выберите отчёт для удаления:</p>
+                        <select id="reportDeleteSelect" style="width:100%; margin-bottom:15px; padding:8px; border-radius:var(--radius-sm); border:1px solid var(--border-input);"></select>
+                        <div style="display:flex; gap:10px; justify-content:center;">
+                            <button id="reportDeleteConfirmBtn" class="btn-danger">🗑 Удалить</button>
+                            <button id="reportDeleteCancelBtn" class="btn-secondary">✖ Отмена</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="reportPreviewOverlay" class="modal-overlay" style="z-index:9995; display:none; overflow-y:auto; align-items:flex-start; padding:40px;">
+                    <div class="modal-content" style="width:90%; max-width:1100px; margin:40px auto; padding:30px; max-height:none;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                            <h2 id="reportPreviewTitle" style="margin:0;">📈 Отчёт</h2>
+                            <button id="reportPreviewCloseBtn" class="modal-close-btn" style="font-size:22px;">✖</button>
+                        </div>
+                        <div id="reportPreviewContent"></div>
+                    </div>
+                </div>
+                <div id="reportLoadOverlay" class="modal-overlay" style="z-index:9994; display:none;">
+                    <div class="modal-content" style="padding:30px; width:420px;">
+                        <h3 style="margin-top:0;">📂 Загрузить отчёт</h3>
+                        <div id="reportLoadList" style="max-height:300px; overflow-y:auto; margin-bottom:15px;"></div>
+                        <button id="reportLoadCancelBtn" class="btn-secondary">✖ Закрыть</button>
+                    </div>
+                </div>
+                <div id="reportMessage"></div>
             </div>
 
             <!-- Вкладка DeepSeek Чат -->
@@ -1271,7 +1550,10 @@
 
     <!-- Правая панель: Блокнот задач -->
     <div class="right-panel">
-        <h2>📝 Блокнот задач</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="margin:0;">📝 Блокнот задач</h2>
+            <button id="downloadTasksBtn" class="btn-sm btn-secondary" title="Скачать все задачи в XLSX">⬇ Скачать</button>
+        </div>
         <div class="task-tabs">
             <button class="task-tab active" data-task-tab="active">Активно</button>
             <button class="task-tab" data-task-tab="archived">Архив</button>
@@ -2505,6 +2787,16 @@
             loadTasks();
         }
     }
+    // Кнопка скачивания задач в XLSX
+    document.getElementById('downloadTasksBtn').addEventListener('click', () => {
+        const a = document.createElement('a');
+        a.href = '/api/tasks/download';
+        a.download = 'задачи.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    });
+
     document.getElementById('addTaskBtn').addEventListener('click', async () => {
         const textarea = document.getElementById('newTaskText');
         const text = textarea.value.trim();
@@ -4754,10 +5046,6 @@
     let _updateDismissed = false;
 
     function initUpdateSystem() {
-        // Периодическая проверка обновлений (раз в 6 часов)
-        checkForUpdates();
-        setInterval(checkForUpdates, 6 * 60 * 60 * 1000);
-
         // Клик по версии — ручная проверка и показ баннера/тост-уведомления
         const verIndicator = document.getElementById('versionIndicator');
         if (verIndicator) {
@@ -4770,6 +5058,19 @@
         }
     }
 
+    // Запускаем систему обновлений (только ручная проверка по клику)
+    initUpdateSystem();
+    // Сначала получаем версию локально (без GitHub), затем проверяем обновления
+    fetch('/api/version')
+        .then(r => r.json())
+        .then(v => {
+            const versionText = document.getElementById('versionText');
+            if (versionText && v.version) versionText.textContent = 'v' + v.version;
+        })
+        .catch(() => {});
+    // При загрузке запрашиваем актуальную версию с сервера (GitHub)
+    checkForUpdates(false);
+
     function checkForUpdates(isManual) {
         isManual = isManual || false;
         fetch('/api/check_update')
@@ -4778,6 +5079,12 @@
                 const indicator = document.getElementById('versionIndicator');
                 const dot = indicator ? indicator.querySelector('.version-dot') : null;
 
+                // Всегда обновляем отображаемую версию (даже при ошибке GitHub)
+                const versionText = document.getElementById('versionText');
+                if (versionText && data.current_version) {
+                    versionText.textContent = 'v' + data.current_version;
+                }
+
                 if (data.error) {
                     if (dot) dot.className = 'version-dot error';
                     if (indicator) indicator.title = 'Ошибка проверки обновлений';
@@ -4785,8 +5092,6 @@
                     return;
                 }
 
-                const versionText = document.getElementById('versionText');
-                if (versionText) versionText.textContent = 'v' + data.current_version;
 
                 if (data.has_update) {
                     if (dot) dot.className = 'version-dot update-available';
@@ -4966,8 +5271,952 @@
         }, duration);
     }
 
-    // Запускаем систему обновлений после загрузки страницы
-    initUpdateSystem();
+    // ================== КОНСТРУКТОР ОТЧЁТОВ ==================
+    let _currentReport = null;       // текущий объект отчёта
+    let _reportBlocks = [];          // синхронизированный список блоков
+
+    // Инициализация при загрузке вкладки Reports
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.dataset.tab === 'reports') initReportsTab();
+        });
+    });
+
+    // Также при старте, если Reports ещё не инициализирован
+    setTimeout(() => {
+        const reportsPane = document.getElementById('reports');
+        if (reportsPane && reportsPane.classList.contains('active')) initReportsTab();
+    }, 500);
+
+    function initReportsTab() {
+        // Загружаем список отчётов
+        fetch('/api/report/list')
+            .then(r => r.json())
+            .then(data => {
+                if (data.reports && data.reports.length > 0) {
+                    const editor = document.getElementById('reportEditorArea');
+                    // Не отображаем автоматически — пользователь сам выбирает
+                }
+            })
+            .catch(() => {});
+    }
+
+    // Утилита: генерация UUID для блоков
+    function _blockId() {
+        return 'blk_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+    }
+
+    // Показать сообщение отчёта
+    function _reportMsg(text, type) {
+        const el = document.getElementById('reportMessage');
+        if (!el) return;
+        el.innerHTML = `<div class="message ${type}">${escapeHtml(text)}</div>`;
+        setTimeout(() => { if (el.innerHTML.includes(text)) el.innerHTML = ''; }, 5000);
+    }
+
+    // Полностью перерисовать редактор отчёта
+    function _renderReportEditor(report) {
+        _currentReport = report;
+        _reportBlocks = (report.blocks || []).slice();
+        const container = document.getElementById('reportBlocksContainer');
+        const editorArea = document.getElementById('reportEditorArea');
+        document.getElementById('reportTitle').value = report.name || '';
+        editorArea.style.display = 'block';
+
+        if (_reportBlocks.length === 0) {
+            container.innerHTML = '<div class="empty-text" style="padding:40px; text-align:center; color:var(--text-muted);">Нажмите кнопку выше, чтобы добавить блок в отчёт</div>';
+            return;
+        }
+
+        let html = '';
+        _reportBlocks.forEach((block, idx) => {
+            const blockId = block.id || _blockId();
+            block.id = blockId;
+            html += _renderBlockHtml(block, idx);
+        });
+        container.innerHTML = html;
+        // Навешиваем обработчики на блоки
+        _attachBlockHandlers();
+    }
+
+    function _renderBlockHtml(block, idx) {
+        const type = block.type || 'text';
+        const id = block.id || _blockId();
+        const typeIcons = { text: '📝', table: '📊', pivot: '📋', chart: '📈', metrics: '📊' };
+        const typeNames = { text: 'Текст', table: 'Таблица данных', pivot: 'Сводная таблица', chart: 'График', metrics: 'Метрики (KPI)' };
+        const icon = typeIcons[type] || '📄';
+        const typeName = typeNames[type] || type;
+
+        let blockContent = '';
+        if (type === 'text') {
+            blockContent = `
+                <div class="form-group" style="margin-bottom:8px;">
+                    <label>📝 Текст (Markdown)</label>
+                    <textarea class="report-block-textarea block-text-content" rows="4" style="width:100%; padding:8px; border:1px solid var(--border-textarea); border-radius:4px; font-family:inherit; resize:vertical; background:var(--bg-input); color:var(--text-primary);">${escapeHtml(block.content || '')}</textarea>
+                </div>
+                <div style="font-size:12px; color:var(--text-muted);">Поддерживает Markdown: **жирный**, *курсив*, списки, ссылки</div>`;
+        } else if (type === 'table') {
+            const query = block.query || '';
+            const source = block.source || 'constructor';
+            const maxRows = block.max_rows || 50;
+            blockContent = `
+                <div class="flex-row" style="gap:8px;">
+                    <div class="form-group" style="flex:2;">
+                        <label>📋 SQL-запрос или имя файла</label>
+                        <input type="text" class="block-table-query" value="${escapeHtml(query)}" placeholder="SELECT * FROM data LIMIT 50" style="width:100%; padding:6px; border:1px solid var(--border-input); border-radius:4px; background:var(--bg-input); color:var(--text-primary);">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Источник</label>
+                        <select class="block-table-source" style="width:100%; padding:6px; border:1px solid var(--border-input); border-radius:4px; background:var(--bg-input); color:var(--text-primary);">
+                            <option value="constructor" ${source === 'constructor' ? 'selected' : ''}>🧩 Текущий конструктор</option>
+                            <option value="sql" ${source === 'sql' ? 'selected' : ''}>🗄 SQL-запрос</option>
+                            <option value="csv" ${source === 'csv' ? 'selected' : ''}>📄 CSV-файл</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex:0; min-width:80px;">
+                        <label>Макс. строк</label>
+                        <input type="number" class="block-table-maxrows" value="${maxRows}" min="1" max="1000" style="width:80px; padding:6px; border:1px solid var(--border-input); border-radius:4px; background:var(--bg-input); color:var(--text-primary);">
+                    </div>
+                </div>`;
+        } else if (type === 'pivot') {
+            const pivotConfig = block.pivot_config || {};
+            blockContent = `
+                <div style="font-size:13px; margin-bottom:8px;">
+                    <span style="color:var(--text-secondary);">📊 Использует текущие настройки сводной таблицы из вкладки «Конструктор».</span>
+                </div>
+                <div class="flex-row" style="gap:8px;">
+                    <div class="form-group" style="flex:1;">
+                        <label>📌 Показывать итоги</label>
+                        <select class="block-pivot-totals" style="width:100%; padding:6px; border:1px solid var(--border-input); border-radius:4px; background:var(--bg-input); color:var(--text-primary);">
+                            <option value="none" ${(pivotConfig.totals || 'none') === 'none' ? 'selected' : ''}>🚫 Без итогов</option>
+                            <option value="rows" ${pivotConfig.totals === 'rows' ? 'selected' : ''}>📊 По строкам</option>
+                            <option value="cols" ${pivotConfig.totals === 'cols' ? 'selected' : ''}>📊 По столбцам</option>
+                            <option value="both" ${pivotConfig.totals === 'both' ? 'selected' : ''}>📊 По строкам и столбцам</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>📐 Формат</label>
+                        <select class="block-pivot-format" style="width:100%; padding:6px; border:1px solid var(--border-input); border-radius:4px; background:var(--bg-input); color:var(--text-primary);">
+                            <option value="flat" ${(pivotConfig.format || 'flat') === 'flat' ? 'selected' : ''}>📐 Плоский</option>
+                            <option value="hierarchical" ${pivotConfig.format === 'hierarchical' ? 'selected' : ''}>📋 Иерархический</option>
+                        </select>
+                    </div>
+                </div>`;
+        } else if (type === 'chart') {
+            const chartConfig = block.chart_config || {};
+            const chartType = chartConfig.type || 'bar';
+            blockContent = `
+                <div class="flex-row" style="gap:8px;">
+                    <div class="form-group" style="flex:1;">
+                        <label>📈 Тип графика</label>
+                        <select class="block-chart-type" style="width:100%; padding:6px; border:1px solid var(--border-input); border-radius:4px; background:var(--bg-input); color:var(--text-primary);">
+                            <option value="bar" ${chartType === 'bar' ? 'selected' : ''}>📊 Столбчатая</option>
+                            <option value="line" ${chartType === 'line' ? 'selected' : ''}>📈 Линейная</option>
+                            <option value="pie" ${chartType === 'pie' ? 'selected' : ''}>🥧 Круговая</option>
+                            <option value="doughnut" ${chartType === 'doughnut' ? 'selected' : ''}>🍩 Кольцевая</option>
+                            <option value="radar" ${chartType === 'radar' ? 'selected' : ''}>🕸 Радар</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>📋 Источник данных</label>
+                        <select class="block-chart-source" style="width:100%; padding:6px; border:1px solid var(--border-input); border-radius:4px; background:var(--bg-input); color:var(--text-primary);">
+                            <option value="pivot" ${(chartConfig.source || 'pivot') === 'pivot' ? 'selected' : ''}>📊 Из сводной таблицы</option>
+                            <option value="manual" ${chartConfig.source === 'manual' ? 'selected' : ''}>✏️ Ручной ввод</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom:8px;">
+                    <label>🏷 Название</label>
+                    <input type="text" class="block-chart-title" value="${escapeHtml(chartConfig.title || '')}" placeholder="Название графика" style="width:100%; padding:6px; border:1px solid var(--border-input); border-radius:4px; background:var(--bg-input); color:var(--text-primary);">
+                </div>`;
+        } else if (type === 'metrics') {
+            const metrics = block.metrics || [{label: '', value: '', color: 'var(--accent-primary)'}];
+            let metricsHtml = '';
+            metrics.forEach((m, mi) => {
+                metricsHtml += `
+                    <div class="metrics-item" style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+                        <input type="text" class="block-metrics-label" value="${escapeHtml(m.label || '')}" placeholder="Название" style="flex:2; padding:6px; border:1px solid var(--border-input); border-radius:4px; background:var(--bg-input); color:var(--text-primary);">
+                        <input type="text" class="block-metrics-value" value="${escapeHtml(m.value || '')}" placeholder="Значение" style="flex:1; padding:6px; border:1px solid var(--border-input); border-radius:4px; background:var(--bg-input); color:var(--text-primary);">
+                        <input type="color" class="block-metrics-color" value="${m.color || '#007bff'}" style="width:36px; height:36px; padding:2px; border:1px solid var(--border-input); border-radius:4px; cursor:pointer;">
+                        <button class="btn-sm btn-danger metrics-remove-btn" data-idx="${mi}" title="Удалить метрику">✖</button>
+                    </div>`;
+            });
+            blockContent = `
+                <div id="metricsList_${id}">${metricsHtml}</div>
+                <button class="btn-sm btn-secondary metrics-add-btn" data-block-id="${id}" title="Добавить метрику">➕ Добавить метрику</button>`;
+        }
+
+        return `
+        <div class="report-block" data-block-id="${id}" data-type="${type}" style="background:var(--bg-card); border:1px solid var(--border-light); border-radius:var(--radius-md); padding:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <span style="font-weight:600; font-size:14px;">${icon} ${typeName}</span>
+                <div style="display:flex; gap:4px;">
+                    <button class="btn-sm btn-secondary block-move-up" title="Переместить вверх" ${idx === 0 ? 'disabled' : ''}>⬆</button>
+                    <button class="btn-sm btn-secondary block-move-down" title="Переместить вниз" ${idx === _reportBlocks.length - 1 ? 'disabled' : ''}>⬇</button>
+                    <button class="btn-sm btn-danger block-remove" title="Удалить блок">🗑</button>
+                </div>
+            </div>
+            ${blockContent}
+        </div>`;
+    }
+
+    // Навешивание обработчиков на блоки
+    function _attachBlockHandlers() {
+        // Перемещение вверх
+        document.querySelectorAll('.block-move-up').forEach((btn, idx) => {
+            btn.addEventListener('click', () => {
+                if (idx === 0) return;
+                const blockEl = btn.closest('.report-block');
+                const blockId = blockEl.dataset.blockId;
+                const realIdx = _reportBlocks.findIndex(b => b.id === blockId);
+                if (realIdx > 0) {
+                    [_reportBlocks[realIdx - 1], _reportBlocks[realIdx]] = [_reportBlocks[realIdx], _reportBlocks[realIdx - 1]];
+                    _currentReport.blocks = _reportBlocks;
+                    _renderReportEditor(_currentReport);
+                }
+            });
+        });
+
+        // Перемещение вниз
+        document.querySelectorAll('.block-move-down').forEach((btn, idx) => {
+            btn.addEventListener('click', () => {
+                const blockEl = btn.closest('.report-block');
+                const blockId = blockEl.dataset.blockId;
+                const realIdx = _reportBlocks.findIndex(b => b.id === blockId);
+                if (realIdx < _reportBlocks.length - 1) {
+                    [_reportBlocks[realIdx], _reportBlocks[realIdx + 1]] = [_reportBlocks[realIdx + 1], _reportBlocks[realIdx]];
+                    _currentReport.blocks = _reportBlocks;
+                    _renderReportEditor(_currentReport);
+                }
+            });
+        });
+
+        // Удаление блока
+        document.querySelectorAll('.block-remove').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const blockEl = btn.closest('.report-block');
+                const blockId = blockEl.dataset.blockId;
+                if (!confirm('Удалить этот блок?')) return;
+                _reportBlocks = _reportBlocks.filter(b => b.id !== blockId);
+                _currentReport.blocks = _reportBlocks;
+                _renderReportEditor(_currentReport);
+            });
+        });
+
+        // Обработчики для метрик
+        document.querySelectorAll('.metrics-add-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const blockId = btn.dataset.blockId;
+                const block = _reportBlocks.find(b => b.id === blockId);
+                if (!block) return;
+                if (!block.metrics) block.metrics = [];
+                block.metrics.push({label: '', value: '', color: 'var(--accent-primary)'});
+                _renderReportEditor(_currentReport);
+            });
+        });
+
+        document.querySelectorAll('.metrics-remove-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.dataset.idx);
+                const blockEl = btn.closest('.report-block');
+                const blockId = blockEl.dataset.blockId;
+                const block = _reportBlocks.find(b => b.id === blockId);
+                if (!block || !block.metrics) return;
+                block.metrics.splice(idx, 1);
+                _renderReportEditor(_currentReport);
+            });
+        });
+    }
+
+    // Сбор данных из блоков в редакторе
+    function _collectBlockData() {
+        const blocks = _reportBlocks;
+        document.querySelectorAll('.report-block').forEach(el => {
+            const blockId = el.dataset.blockId;
+            const block = blocks.find(b => b.id === blockId);
+            if (!block) return;
+
+            if (block.type === 'text') {
+                const textarea = el.querySelector('.block-text-content');
+                if (textarea) block.content = textarea.value;
+            } else if (block.type === 'table') {
+                const queryInput = el.querySelector('.block-table-query');
+                const sourceSel = el.querySelector('.block-table-source');
+                const maxRowsInput = el.querySelector('.block-table-maxrows');
+                if (queryInput) block.query = queryInput.value;
+                if (sourceSel) block.source = sourceSel.value;
+                if (maxRowsInput) block.max_rows = parseInt(maxRowsInput.value) || 50;
+            } else if (block.type === 'pivot') {
+                if (!block.pivot_config) block.pivot_config = {};
+                const totalsSel = el.querySelector('.block-pivot-totals');
+                const formatSel = el.querySelector('.block-pivot-format');
+                if (totalsSel) block.pivot_config.totals = totalsSel.value;
+                if (formatSel) block.pivot_config.format = formatSel.value;
+            } else if (block.type === 'chart') {
+                if (!block.chart_config) block.chart_config = {};
+                const typeSel = el.querySelector('.block-chart-type');
+                const sourceSel = el.querySelector('.block-chart-source');
+                const titleInput = el.querySelector('.block-chart-title');
+                if (typeSel) block.chart_config.type = typeSel.value;
+                if (sourceSel) block.chart_config.source = sourceSel.value;
+                if (titleInput) block.chart_config.title = titleInput.value;
+            } else if (block.type === 'metrics') {
+                const labels = el.querySelectorAll('.block-metrics-label');
+                const values = el.querySelectorAll('.block-metrics-value');
+                const colors = el.querySelectorAll('.block-metrics-color');
+                const metrics = [];
+                labels.forEach((l, i) => {
+                    const colorEl = colors[i];
+                    metrics.push({
+                        label: l.value,
+                        value: values[i] ? values[i].value : '',
+                        color: colorEl ? colorEl.value : 'var(--accent-primary)',
+                    });
+                });
+                block.metrics = metrics;
+            }
+        });
+        return blocks;
+    }
+
+    // ========== ОБРАБОТЧИКИ КНОПОК ОТЧЁТОВ ==========
+
+    // Новый отчёт
+    document.getElementById('reportNewBtn')?.addEventListener('click', async () => {
+        const name = prompt('Введите название нового отчёта:', 'Новый отчёт');
+        if (!name || !name.trim()) return;
+        try {
+            const res = await fetch('/api/report/create', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: name.trim()})
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            _renderReportEditor(data);
+            _reportMsg(`✅ Отчёт "${name}" создан`, 'success');
+        } catch (e) {
+            _reportMsg('❌ ' + e.message, 'error');
+        }
+    });
+
+    // Сохранить отчёт
+    document.getElementById('reportSaveBtn')?.addEventListener('click', async () => {
+        if (!_currentReport) {
+            _reportMsg('Сначала создайте или загрузите отчёт', 'error');
+            return;
+        }
+        // Собираем данные из блоков
+        const blocks = _collectBlockData();
+        _currentReport.blocks = blocks;
+        _currentReport.name = document.getElementById('reportTitle').value.trim() || _currentReport.name;
+
+        try {
+            const res = await fetch('/api/report/save', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(_currentReport)
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            _reportMsg(`✅ Отчёт "${_currentReport.name}" сохранён`, 'success');
+        } catch (e) {
+            _reportMsg('❌ ' + e.message, 'error');
+        }
+    });
+
+    // Загрузить отчёт
+    document.getElementById('reportLoadBtn')?.addEventListener('click', async () => {
+        try {
+            const res = await fetch('/api/report/list');
+            const data = await res.json();
+            if (!data.reports || data.reports.length === 0) {
+                _reportMsg('Нет сохранённых отчётов', 'warning');
+                return;
+            }
+            const overlay = document.getElementById('reportLoadOverlay');
+            const listEl = document.getElementById('reportLoadList');
+            listEl.innerHTML = data.reports.map(r => `
+                <div class="scenario-list-item" style="cursor:pointer;" data-name="${escapeHtml(r.name)}">
+                    <span>📄 ${escapeHtml(r.name)} <span class="scenario-date">(${r.updated_at || ''})</span></span>
+                </div>
+            `).join('');
+            listEl.querySelectorAll('.scenario-list-item').forEach(item => {
+                item.addEventListener('click', async () => {
+                    const name = item.dataset.name;
+                    try {
+                        const loadRes = await fetch('/api/report/load', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({name})
+                        });
+                        const report = await loadRes.json();
+                        if (report.error) throw new Error(report.error);
+                        _renderReportEditor(report);
+                        overlay.style.display = 'none';
+                        _reportMsg(`✅ Отчёт "${name}" загружен`, 'success');
+                    } catch (e) {
+                        _reportMsg('❌ ' + e.message, 'error');
+                    }
+                });
+            });
+            overlay.style.display = 'flex';
+        } catch (e) {
+            _reportMsg('❌ ' + e.message, 'error');
+        }
+    });
+
+    document.getElementById('reportLoadCancelBtn')?.addEventListener('click', () => {
+        document.getElementById('reportLoadOverlay').style.display = 'none';
+    });
+
+    // Удалить отчёт
+    document.getElementById('reportDeleteBtn')?.addEventListener('click', async () => {
+        try {
+            const res = await fetch('/api/report/list');
+            const data = await res.json();
+            if (!data.reports || data.reports.length === 0) {
+                _reportMsg('Нет сохранённых отчётов', 'warning');
+                return;
+            }
+            const select = document.getElementById('reportDeleteSelect');
+            select.innerHTML = data.reports.map(r => `<option value="${escapeHtml(r.name)}">${escapeHtml(r.name)}</option>`).join('');
+            document.getElementById('reportDeleteConfirmOverlay').style.display = 'flex';
+        } catch (e) {
+            _reportMsg('❌ ' + e.message, 'error');
+        }
+    });
+
+    document.getElementById('reportDeleteConfirmBtn')?.addEventListener('click', async () => {
+        const name = document.getElementById('reportDeleteSelect').value;
+        if (!name) return;
+        try {
+            const res = await fetch('/api/report/delete', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name})
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            document.getElementById('reportDeleteConfirmOverlay').style.display = 'none';
+            if (_currentReport && _currentReport.name === name) {
+                _currentReport = null;
+                _reportBlocks = [];
+                document.getElementById('reportEditorArea').style.display = 'none';
+            }
+            _reportMsg(`🗑 Отчёт "${name}" удалён`, 'success');
+        } catch (e) {
+            _reportMsg('❌ ' + e.message, 'error');
+        }
+    });
+
+    document.getElementById('reportDeleteCancelBtn')?.addEventListener('click', () => {
+        document.getElementById('reportDeleteConfirmOverlay').style.display = 'none';
+    });
+
+    // Предпросмотр
+    document.getElementById('reportPreviewBtn')?.addEventListener('click', async () => {
+        if (!_currentReport) {
+            _reportMsg('Сначала создайте или загрузите отчёт', 'error');
+            return;
+        }
+        const blocks = _collectBlockData();
+        _currentReport.blocks = blocks;
+        _currentReport.name = document.getElementById('reportTitle').value.trim() || _currentReport.name;
+
+        try {
+            const res = await fetch('/api/report/preview', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(_currentReport)
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            document.getElementById('reportPreviewTitle').textContent = '📈 ' + _currentReport.name;
+            document.getElementById('reportPreviewContent').innerHTML = data.html;
+            document.getElementById('reportPreviewOverlay').style.display = 'flex';
+        } catch (e) {
+            _reportMsg('❌ ' + e.message, 'error');
+        }
+    });
+
+    document.getElementById('reportPreviewCloseBtn')?.addEventListener('click', () => {
+        document.getElementById('reportPreviewOverlay').style.display = 'none';
+    });
+
+    // Экспорт в XLSX
+    document.getElementById('reportExportBtn')?.addEventListener('click', async () => {
+        if (!_currentReport) {
+            _reportMsg('Сначала создайте или загрузите отчёт', 'error');
+            return;
+        }
+        const blocks = _collectBlockData();
+        _currentReport.blocks = blocks;
+        _currentReport.name = document.getElementById('reportTitle').value.trim() || _currentReport.name;
+
+        try {
+            const res = await fetch('/api/report/export/xlsx', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(_currentReport)
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            if (data.download_url) {
+                const a = document.createElement('a');
+                a.href = data.download_url;
+                a.download = data.filename || 'report.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                _reportMsg('✅ Файл скачан', 'success');
+            }
+        } catch (e) {
+            _reportMsg('❌ ' + e.message, 'error');
+        }
+    });
+
+    // ========== ДОБАВЛЕНИЕ БЛОКОВ ==========
+    function _addBlock(type) {
+        if (!_currentReport) {
+            _reportMsg('Сначала создайте или загрузите отчёт', 'error');
+            return;
+        }
+        const block = {id: _blockId(), type: type};
+        if (type === 'text') block.content = '';
+        else if (type === 'table') { block.query = ''; block.source = 'constructor'; block.max_rows = 50; }
+        else if (type === 'pivot') { block.pivot_config = {totals: 'none', format: 'flat'}; }
+        else if (type === 'chart') { block.chart_config = {type: 'bar', source: 'pivot', title: ''}; }
+        else if (type === 'metrics') { block.metrics = [{label: 'Новый показатель', value: '0', color: '#007bff'}]; }
+
+        _reportBlocks.push(block);
+        _currentReport.blocks = _reportBlocks;
+        _renderReportEditor(_currentReport);
+        _reportMsg(`✅ Блок "${type}" добавлен`, 'success');
+    }
+
+    document.getElementById('reportAddTextBlock')?.addEventListener('click', () => _addBlock('text'));
+    document.getElementById('reportAddTableBlock')?.addEventListener('click', () => _addBlock('table'));
+    document.getElementById('reportAddPivotBlock')?.addEventListener('click', () => _addBlock('pivot'));
+    document.getElementById('reportAddChartBlock')?.addEventListener('click', () => _addBlock('chart'));
+    document.getElementById('reportAddMetricsBlock')?.addEventListener('click', () => _addBlock('metrics'));
+
+    // Закрытие модалок по клику на оверлей
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.style.display = 'none';
+        });
+    });
+
+    // ================== ВИЗУАЛИЗАТОР ГРАФИКОВ ==================
+    let _chartsInstance = null;
+    let _chartsColorScheme = 'default';
+
+    // Цветовые схемы
+    const _CHARTS_PALETTES = {
+        default: ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', '#edc948', '#b07aa1', '#ff9da7', '#9c755f', '#bab0ac'],
+        pastel: ['#aec7e8', '#ffbb78', '#ff9896', '#c5b0d5', '#98df8a', '#ffd78a', '#c49c94', '#f7b6d2', '#dbdb8d', '#9edae5'],
+        vivid: ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#42d4f4', '#f032e6', '#bfef45', '#fabed4'],
+        monochrome: ['#08306b', '#08519c', '#2171b5', '#4292c6', '#6baed6', '#9ecae1', '#c6dbef', '#deebf7', '#f7fbff', '#e0e0e0'],
+        warm: ['#ff6b6b', '#ff9f43', '#feca57', '#ff6348', '#e17055', '#d63031', '#e84393', '#fd79a8', '#c44569', '#6c5ce7'],
+        cool: ['#00b894', '#00cec9', '#0984e3', '#6c5ce7', '#74b9ff', '#a29bfe', '#81ecec', '#55efc4', '#2d3436', '#636e72'],
+    };
+
+    function _chartsMessage(text, type) {
+        const el = document.getElementById('chartsMessage');
+        if (!el) return;
+        el.innerHTML = `<div class="message ${type}">${text}</div>`;
+        setTimeout(() => { if (el.innerHTML.includes(text)) el.innerHTML = ''; }, 5000);
+    }
+
+    function _chartsGetPalette() {
+        const scheme = document.getElementById('chartsColorScheme')?.value || 'default';
+        return _CHARTS_PALETTES[scheme] || _CHARTS_PALETTES.default;
+    }
+
+    function _chartsGetBaseChartType(uiType) {
+        const map = {
+            'bar': 'bar', 'grouped-bar': 'bar', 'stacked-bar': 'bar', 'horizontalBar': 'bar',
+            'line': 'line', 'smooth-line': 'line', 'step-line': 'line',
+            'pie': 'pie', 'doughnut': 'doughnut', 'polarArea': 'polarArea',
+            'radar': 'radar', 'scatter': 'scatter', 'bubble': 'bubble',
+            'heatmap': 'bar', 'mixed': 'bar',
+        };
+        return map[uiType] || 'bar';
+    }
+
+    function _chartsBuildOptions(uiType, baseType, labels, datasets) {
+        const palette = _chartsGetPalette();
+        const opacity = parseInt(document.getElementById('chartsFillOpacity')?.value || 50) / 100;
+        const borderWidth = parseInt(document.getElementById('chartsBorderWidth')?.value || 2);
+        const showLegend = document.getElementById('chartsShowLegend')?.checked || false;
+        const showLabels = document.getElementById('chartsShowLabels')?.checked || false;
+        const showGrid = document.getElementById('chartsShowGrid')?.checked || false;
+        const animate = document.getElementById('chartsAnimate')?.checked ?? true;
+        const title = document.getElementById('chartsTitle')?.value || '';
+        const style = document.getElementById('chartsStyleSelect')?.value || 'modern';
+
+        const colors = palette;
+        datasets.forEach((ds, i) => {
+            if (!ds.backgroundColor) {
+                if (baseType === 'pie' || baseType === 'doughnut' || baseType === 'polarArea') {
+                    ds.backgroundColor = labels.map((_, li) => colors[li % colors.length]);
+                } else if (uiType === 'stacked-bar' || uiType === 'bar' || uiType === 'horizontalBar') {
+                    ds.backgroundColor = colors[i % colors.length] + Math.round(opacity * 255).toString(16).padStart(2, '0');
+                    ds.borderColor = colors[i % colors.length];
+                    ds.borderWidth = borderWidth;
+                } else if (baseType === 'line' || uiType === 'smooth-line' || uiType === 'step-line') {
+                    ds.backgroundColor = colors[i % colors.length] + Math.round(opacity * 255).toString(16).padStart(2, '0');
+                    ds.borderColor = colors[i % colors.length];
+                    ds.borderWidth = borderWidth;
+                    ds.pointBackgroundColor = colors[i % colors.length];
+                    ds.pointRadius = style === 'minimal' ? 0 : 3;
+                    ds.fill = style === '3d';
+                } else {
+                    ds.backgroundColor = colors[i % colors.length] + '33';
+                    ds.borderColor = colors[i % colors.length];
+                    ds.borderWidth = 1;
+                }
+            }
+            if (uiType === 'smooth-line') {
+                ds.tension = 0.4;
+            } else if (uiType === 'step-line') {
+                ds.stepped = true;
+            }
+        });
+
+        const options = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: animate ? { duration: 800, easing: 'easeOutQuart' } : false,
+            plugins: {
+                legend: { display: showLegend, position: 'bottom', labels: { boxWidth: 12, padding: 15, font: { size: 11 } } },
+                tooltip: { enabled: true, backgroundColor: 'rgba(0,0,0,0.8)', titleFont: { size: 12 }, bodyFont: { size: 11 } },
+            },
+            scales: {},
+        };
+
+        if (showLabels && (baseType === 'bar' || baseType === 'line')) {
+            options.plugins.datalabels = { anchor: 'end', align: 'end', font: { size: 10 } };
+        }
+
+        if (baseType === 'bar' || baseType === 'line' || baseType === 'radar') {
+            if (options.scales) {
+                if (showGrid) {
+                    options.scales.x = { grid: { display: true, color: 'rgba(0,0,0,0.06)' } };
+                    options.scales.y = { grid: { display: true, color: 'rgba(0,0,0,0.06)' }, beginAtZero: true };
+                } else {
+                    options.scales.x = { grid: { display: false }, ticks: { display: true } };
+                    options.scales.y = { grid: { display: false }, beginAtZero: true };
+                }
+            }
+        }
+
+        if (uiType === 'grouped-bar') {
+            // grouped-bar — это обычная bar с несколькими dataset, уже настроена
+        } else if (uiType === 'stacked-bar') {
+            if (options.scales) {
+                options.scales.x = { stacked: true };
+                options.scales.y = { stacked: true, beginAtZero: true };
+            }
+        } else if (uiType === 'horizontalBar') {
+            options.indexAxis = 'y';
+        } else if (uiType === 'pie' || uiType === 'doughnut' || uiType === 'polarArea') {
+            delete options.scales;
+        } else if (uiType === 'radar') {
+            delete options.scales;
+        }
+
+        if (style === '3d') {
+            // Имитация 3D — более жирные границы и тени
+            datasets.forEach(ds => { ds.borderWidth = (ds.borderWidth || 1) + 1; });
+        }
+
+        if (title) {
+            options.plugins.title = { display: true, text: title, font: { size: 16, weight: 'bold' }, padding: { bottom: 12 } };
+        }
+
+        return options;
+    }
+
+    function _chartsGetDataFromPivot() {
+        // Извлекаем данные из последней построенной сводной таблицы
+        if (!constructorLastPivotData || constructorLastPivotData.length === 0 || !constructorLastPivotColumns) {
+            _chartsMessage('❌ Нет данных сводной таблицы. Сначала постройте сводную на вкладке «Конструктор».', 'error');
+            return null;
+        }
+        const data = constructorLastPivotData;
+        const cols = constructorLastPivotColumns;
+        const rowCols = constructorLastRowColumns || [];
+
+        // Первая row-колонка → метки, первая value-колонка → значения
+        const labelCol = rowCols.length > 0 ? rowCols[0] : cols[0];
+        const valueCandidates = cols.filter(c => !rowCols.includes(c) && c !== 'Агрегация' && !c.includes('Итого'));
+        const valueCol = valueCandidates.length > 0 ? valueCandidates[0] : (cols.length > 1 ? cols[1] : cols[0]);
+
+        const labels = data.map(row => String(row[labelCol] ?? ''));
+        const values = data.map(row => {
+            const v = parseFloat(row[valueCol]);
+            return isNaN(v) ? 0 : v;
+        });
+
+        return { labels, datasets: [{ label: valueCol, data: values }], labelCol, valueCol };
+    }
+
+    function _chartsGetDataFromManual() {
+        const labelsStr = document.getElementById('chartsManualLabels')?.value || '';
+        const valuesStr = document.getElementById('chartsManualValues')?.value || '';
+        const seriesName = document.getElementById('chartsManualSeries')?.value || 'Ряд 1';
+
+        const labels = labelsStr.split(',').map(s => s.trim()).filter(Boolean);
+        const values = valuesStr.split(',').map(s => {
+            const v = parseFloat(s.trim());
+            return isNaN(v) ? 0 : v;
+        }).filter(v => !isNaN(v));
+
+        if (labels.length === 0 || values.length === 0) {
+            _chartsMessage('❌ Введите метки и значения (через запятую)', 'error');
+            return null;
+        }
+
+        // Собираем дополнительные ряды
+        const datasets = [{ label: seriesName, data: values.slice(0, labels.length) }];
+        const extraSeriesContainer = document.getElementById('chartsManualExtraSeries');
+        if (extraSeriesContainer) {
+            extraSeriesContainer.querySelectorAll('.charts-manual-extra-row').forEach(el => {
+                const vals = (el.querySelector('.charts-extra-values')?.value || '').split(',').map(s => {
+                    const v = parseFloat(s.trim());
+                    return isNaN(v) ? 0 : v;
+                });
+                const lbl = el.querySelector('.charts-extra-label')?.value || 'Ряд ' + (datasets.length + 1);
+                if (vals.length > 0) {
+                    datasets.push({ label: lbl, data: vals.slice(0, labels.length) });
+                }
+            });
+        }
+
+        return { labels, datasets };
+    }
+
+    function _chartsBuildMixedType(labels, datasets, uiType) {
+        if (uiType !== 'mixed' || datasets.length < 2) return datasets;
+        return datasets.map((ds, i) => {
+            if (i === 0) return { ...ds, type: 'bar' };
+            return { ...ds, type: 'line' };
+        });
+    }
+
+    function _chartsRender(chartData) {
+        if (!chartData) return;
+
+        const uiType = document.getElementById('chartsTypeSelect')?.value || 'bar';
+        const baseType = _chartsGetBaseChartType(uiType);
+        const canvas = document.getElementById('chartsCanvas');
+        const container = document.getElementById('chartsCanvasContainer');
+        const placeholder = document.getElementById('chartsPlaceholder');
+
+        // Скрываем placeholder
+        if (placeholder) placeholder.style.display = 'none';
+
+        // Разрушаем предыдущий график
+        if (_chartsInstance) {
+            _chartsInstance.destroy();
+            _chartsInstance = null;
+        }
+
+        const ctx = canvas.getContext('2d');
+        const { labels, datasets } = chartData;
+
+        // Строим конфигурацию
+        let chartDatasets = datasets.map((ds, i) => {
+            const palette = _chartsGetPalette();
+            const color = palette[i % palette.length];
+            return {
+                label: ds.label || `Ряд ${i + 1}`,
+                data: ds.data || [],
+                backgroundColor: color + '80',
+                borderColor: color,
+                borderWidth: 2,
+                pointRadius: 3,
+                pointBackgroundColor: color,
+            };
+        });
+
+        // Для mixed типа
+        if (uiType === 'mixed') {
+            chartDatasets = _chartsBuildMixedType(labels, chartDatasets, uiType);
+        }
+
+        const options = _chartsBuildOptions(uiType, baseType, labels, chartDatasets);
+
+        try {
+            _chartsInstance = new Chart(ctx, {
+                type: baseType,
+                data: { labels, datasets: chartDatasets },
+                options: options,
+            });
+
+            // Обновляем информационные метки
+            const dataInfo = document.getElementById('chartsDataInfo');
+            if (dataInfo) {
+                const totalValues = chartDatasets.reduce((sum, ds) => sum + ds.data.reduce((a, b) => a + b, 0), 0);
+                dataInfo.textContent = `📊 ${labels.length} меток, ${chartDatasets.length} рядов, сумма: ${totalValues.toLocaleString()}`;
+            }
+
+            _chartsMessage('✅ График построен!', 'success');
+        } catch (e) {
+            _chartsMessage('❌ Ошибка построения графика: ' + e.message, 'error');
+            console.error('Chart error:', e);
+        }
+    }
+
+    // Основная функция построения графика
+    async function _chartsBuild() {
+        const source = document.getElementById('chartsSourceSelect')?.value || 'pivot';
+
+        let chartData = null;
+        if (source === 'pivot') {
+            chartData = _chartsGetDataFromPivot();
+        } else {
+            chartData = _chartsGetDataFromManual();
+        }
+
+        if (chartData) {
+            _chartsRender(chartData);
+        }
+    }
+
+    // Обработчики
+    document.addEventListener('DOMContentLoaded', () => {
+        const buildBtn = document.getElementById('chartsBuildBtn');
+        if (buildBtn) {
+            buildBtn.addEventListener('click', _chartsBuild);
+        }
+
+        const resetBtn = document.getElementById('chartsResetBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                if (_chartsInstance) {
+                    _chartsInstance.destroy();
+                    _chartsInstance = null;
+                }
+                const placeholder = document.getElementById('chartsPlaceholder');
+                if (placeholder) placeholder.style.display = 'block';
+                const dataInfo = document.getElementById('chartsDataInfo');
+                if (dataInfo) dataInfo.textContent = '';
+                _chartsMessage('🔄 График сброшен', 'success');
+            });
+        }
+
+        // Экспорт PNG
+        const exportBtn = document.getElementById('chartsExportPngBtn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+                const canvas = document.getElementById('chartsCanvas');
+                if (!canvas) return;
+                const link = document.createElement('a');
+                link.download = 'график.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                _chartsMessage('✅ График скачан как PNG', 'success');
+            });
+        }
+
+        // Переключение источника
+        const sourceSelect = document.getElementById('chartsSourceSelect');
+        if (sourceSelect) {
+            sourceSelect.addEventListener('change', () => {
+                const manualInput = document.getElementById('chartsManualInput');
+                if (manualInput) {
+                    manualInput.style.display = sourceSelect.value === 'manual' ? 'block' : 'none';
+                }
+                const titleInput = document.getElementById('chartsTitle');
+                if (titleInput) {
+                    titleInput.value = sourceSelect.value === 'manual' ? 'Ручной ввод' : 'График из сводной таблицы';
+                }
+            });
+        }
+
+        // Ползунки прозрачности и толщины линии
+        const fillOpacity = document.getElementById('chartsFillOpacity');
+        if (fillOpacity) {
+            fillOpacity.addEventListener('input', () => {
+                const val = document.getElementById('chartsFillOpacityValue');
+                if (val) val.textContent = fillOpacity.value + '%';
+            });
+        }
+
+        const borderWidth = document.getElementById('chartsBorderWidth');
+        if (borderWidth) {
+            borderWidth.addEventListener('input', () => {
+                const val = document.getElementById('chartsBorderWidthValue');
+                if (val) val.textContent = borderWidth.value + 'px';
+            });
+        }
+
+        // Добавление дополнительного ряда
+        const addSeriesBtn = document.getElementById('chartsManualAddSeries');
+        if (addSeriesBtn) {
+            addSeriesBtn.addEventListener('click', () => {
+                const container = document.getElementById('chartsManualExtraSeries');
+                if (!container) return;
+                const idx = container.children.length + 1;
+                const div = document.createElement('div');
+                div.className = 'charts-manual-extra-row flex-row';
+                div.style.cssText = 'gap:8px; margin-top:6px;';
+                div.innerHTML = `
+                    <div class="form-group" style="flex:1;"><input type="text" class="charts-extra-label" placeholder="Название ряда" value="Ряд ${idx + 1}" style="width:100%; padding:4px; border:1px solid var(--border-input); border-radius:4px; background:var(--bg-input); color:var(--text-primary);"></div>
+                    <div class="form-group" style="flex:2;"><input type="text" class="charts-extra-values" placeholder="Значения через запятую" style="width:100%; padding:4px; border:1px solid var(--border-input); border-radius:4px; background:var(--bg-input); color:var(--text-primary);"></div>
+                    <div class="form-group" style="flex:0;"><button class="btn-sm btn-danger charts-extra-remove" title="Удалить ряд">✖</button></div>
+                `;
+                div.querySelector('.charts-extra-remove').addEventListener('click', () => div.remove());
+                container.appendChild(div);
+            });
+        }
+
+        // Обработчик типа графика — меняем название
+        const typeSelect = document.getElementById('chartsTypeSelect');
+        if (typeSelect) {
+            typeSelect.addEventListener('change', () => {
+                const titleInput = document.getElementById('chartsTitle');
+                if (titleInput && titleInput.value === 'График из сводной таблицы') {
+                    const typeLabels = {
+                        'bar': 'Столбчатая диаграмма',
+                        'grouped-bar': 'Группированная столбчатая',
+                        'stacked-bar': 'Столбчатая с накоплением',
+                        'horizontalBar': 'Горизонтальная столбчатая',
+                        'line': 'Линейный график',
+                        'smooth-line': 'Сглаженный линейный график',
+                        'step-line': 'Ступенчатый график',
+                        'pie': 'Круговая диаграмма',
+                        'doughnut': 'Кольцевая диаграмма',
+                        'polarArea': 'Полярная диаграмма',
+                        'radar': 'Радарная диаграмма',
+                        'scatter': 'Точечная диаграмма',
+                        'bubble': 'Пузырьковая диаграмма',
+                        'heatmap': 'Тепловая карта',
+                        'mixed': 'Комбинированный график',
+                    };
+                    const selectedOption = typeSelect.options[typeSelect.selectedIndex];
+                    const groupLabel = selectedOption.closest('optgroup')?.label || '';
+                    titleInput.value = (groupLabel ? groupLabel + ' — ' : '') + (typeLabels[typeSelect.value] || 'График');
+                }
+            });
+        }
+    });
+
+    // Авто-построение графика при переключении на вкладку, если есть данные сводной
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.dataset.tab === 'charts' && constructorLastPivotData) {
+                // Не строим автоматически — пусть пользователь нажмёт "Построить"
+                const dataInfo = document.getElementById('chartsDataInfo');
+                if (dataInfo) {
+                    dataInfo.textContent = `📊 Данные сводной доступны (${constructorLastPivotData.length} строк). Нажмите «Построить график»`;
+                }
+            }
+        });
+    });
 
 </script>
 <!-- ==================== UPDATE UI ==================== -->

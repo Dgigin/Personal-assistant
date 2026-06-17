@@ -29,6 +29,7 @@ from src.routes.converter_routes import converter_bp
 from src.routes.task_routes import task_bp
 from src.routes.chat_routes import chat_bp
 from src.routes.constructor_routes import constructor_bp
+from src.routes.report_routes import report_bp
 from src.routes.update_routes import update_bp
 from src.updater import check_pending_update
 import time
@@ -128,6 +129,7 @@ def create_app() -> Flask:
 
     # Исключаем public эндпоинты из CSRF-защиты
     csrf.exempt('/api/health')
+    csrf.exempt('/api/version')
     csrf.exempt('/api/check_update')
     csrf.exempt('/api/check_update/status')
     csrf.exempt('/api/check_update/update_progress')
@@ -182,6 +184,7 @@ def create_app() -> Flask:
     app.register_blueprint(task_bp)
     app.register_blueprint(chat_bp)
     app.register_blueprint(constructor_bp)
+    app.register_blueprint(report_bp)
     app.register_blueprint(update_bp)
 
     # -----------------------------------------------------------------------
@@ -262,6 +265,7 @@ def create_app() -> Flask:
         if request.path in ('/', '/api/auth_status', '/api/login', '/api/logout',
                             '/api/csrf_token',
                             '/api/chat/status', '/api/chat/toggle',
+                            '/api/version',
                             '/api/check_update', '/api/check_update/status',
                             '/api/apply_update', '/api/apply_update/restart'):
             return None
@@ -300,6 +304,7 @@ def create_app() -> Flask:
             # чтобы фоновый поллинг не сбрасывал таймер неактивности
             if request.path not in ('/', '/api/auth_status', '/api/login', '/api/logout',
                                     '/api/chat/status', '/api/chat/toggle',
+                                    '/api/version',
                                     '/api/check_update', '/api/check_update/status',
                                     '/api/apply_update', '/api/apply_update/restart'):
                 session['last_activity'] = time.time()

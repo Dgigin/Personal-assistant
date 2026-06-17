@@ -775,3 +775,140 @@ def close_file():
         return jsonify({'success': True, 'message': 'Файл удалён'})
 
     return jsonify({'error': 'Файл не найден'}), 404
+
+
+# ==================== 9. ВЫЧИСЛЯЕМЫЕ КОЛОНКИ (Calculated Fields) ====================
+
+
+@constructor_bp.route('/api/constructor/calculated/apply', methods=['POST'])
+def api_apply_calculated():
+    """
+    Применяет вычисляемые колонки к данным.
+    Тело запроса: {data: [{col: val, ...}], calculated_columns: [{name, formula}, ...]}
+    """
+    body = request.get_json()
+    data = body.get('data', [])
+    calculated_columns = body.get('calculated_columns', [])
+    if not data or not calculated_columns:
+        return jsonify({'error': 'Не указаны данные или вычисляемые колонки'}), 400
+    try:
+        from ..services.constructor import apply_calculated_columns
+        df = pd.DataFrame(data)
+        df = apply_calculated_columns(df, calculated_columns)
+        result_data = df.fillna('').astype(str).to_dict(orient='records')
+        result_columns = df.columns.tolist()
+        return jsonify({'data': result_data, 'columns': result_columns})
+    except Exception as e:
+        logger.error('Ошибка вычисляемых колонок: %s', e)
+        return jsonify({'error': str(e)}), 500
+
+
+@constructor_bp.route('/api/constructor/calculated/list', methods=['GET'])
+def api_list_calculated():
+    """Возвращает список сохранённых вычисляемых колонок."""
+    try:
+        from ..services.constructor import list_calculated_columns
+        cols = list_calculated_columns()
+        return jsonify({'calculated_columns': cols})
+    except Exception as e:
+        logger.error('Ошибка списка вычисляемых колонок: %s', e)
+        return jsonify({'error': str(e)}), 500
+
+
+@constructor_bp.route('/api/constructor/calculated/save', methods=['POST'])
+def api_save_calculated():
+    """Сохраняет вычисляемую колонку."""
+    body = request.get_json()
+    name = body.get('name', '').strip()
+    formula = body.get('formula', '').strip()
+    if not name or not formula:
+        return jsonify({'error': 'Укажите name и formula'}), 400
+    try:
+        from ..services.constructor import save_calculated_column
+        result = save_calculated_column({'name': name, 'formula': formula})
+        return jsonify(result)
+    except Exception as e:
+        logger.error('Ошибка сохранения вычисляемой колонки: %s', e)
+        return jsonify({'error': str(e)}), 500
+
+
+@constructor_bp.route('/api/constructor/calculated/delete', methods=['POST'])
+def api_delete_calculated():
+    """Удаляет вычисляемую колонку."""
+    body = request.get_json()
+    name = body.get('name', '').strip()
+    if not name:
+        return jsonify({'error': 'Укажите name'}), 400
+    try:
+        from ..services.constructor import delete_calculated_column
+        success = delete_calculated_column(name)
+        return jsonify({'success': success})
+    except Exception as e:
+        logger.error('Ошибка удаления вычисляемой колонки: %s', e)
+        return jsonify({'error': str(e)}), 500
+
+
+# ==================== 10. УСЛОВНОЕ ФОРМАТИРОВАНИЕ (Conditional Formatting) ====================
+
+
+@constructor_bp.route('/api/constructor/conditional/apply', methods=['POST'])
+def api_apply_conditional():
+    """
+    Применяет условное форматирование к данным.
+    Тело запроса: {data, columns, rules}
+    """
+    body = request.get_json()
+    data = body.get('data', [])
+    columns = body.get('columns', [])
+    rules = body.get('rules', [])
+    if not data or not rules:
+        return jsonify({'data': data, 'cell_styles': []})
+    try:
+        from ..services.constructor import apply_conditional_formatting
+        result = apply_conditional_formatting(data, columns, rules)
+        return jsonify(result)
+    except Exception as e:
+        logger.error('Ошибка условного форматирования: %s', e)
+        return jsonify({'error': str(e)}), 500
+
+
+# ==================== 11. СЛАЙСЕРЫ (Slicers) ====================
+
+
+@constructor_bp.route('/api/constructor/slicer', methods=['POST'])
+def api_slicer_data():
+    """
+    Возвращает данные для построения слайсера по колонке.
+    Тело запроса: {file_id, sheet_name, column, slicer_type?, header_row?}
+    """
+    body = request.get_json()
+    file_id = body.get('file_id', '')
+    sheet_name = body.get('sheet_name', '')
+    column = body.get('column', '')
+    slicer_type = body.get('slicer_type', 'auto')
+
+    if not file_id or not sheet_name or not column:
+        return jsonify({'error': 'Не указаны file_id, sheet_name, column'}), 400
+
+    file_info = _temp_files.get(file_id)
+    if not file_info:
+        return jsonify({'error': 'Файл не найден'}), 404
+
+    try:
+        from ..services.constructor import get_slicer_data
+        header_row = int(body.get('header_row', 0))
+        cache_id = file_info.get('sqlite_cache_id')
+        if cache_id:
+            try:
+                df = sqlite_cache.load_full_dataframe(cache_id)
+            except Exception:
+                df = read_file_to_df(file_info['path'], sheet_name=sheet_name, header=header_row, dtype=str)
+        else:
+            df = read_file_to_df(file_info['path'], sheet_name=sheet_name, header=header_row, dtype=str)
+        df = df.fillna('').astype(str)
+
+        result = get_slicer_data(df, column, slicer_type)
+        return jsonify(result)
+    except Exception as e:
+        logger.error('Ошибка получения данных слайсера: %s', e)
+        return jsonify({'error': str(e)}), 500

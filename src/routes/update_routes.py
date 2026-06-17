@@ -30,6 +30,17 @@ _update_state = {
 }
 
 
+@update_bp.route("/api/version", methods=["GET"])
+def api_version():
+    """
+    GET /api/version
+    Быстрое получение текущей версии приложения (без обращения к GitHub).
+    """
+    return jsonify({
+        "version": get_current_version()
+    }), 200
+
+
 @update_bp.route("/api/check_update", methods=["GET"])
 def api_check_update():
     """

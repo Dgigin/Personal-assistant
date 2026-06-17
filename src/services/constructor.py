@@ -1401,3 +1401,403 @@ def secure_filename_for_scenario(name: str) -> str:
     import re
     safe = re.sub(r'[^\w\-_\. ]', '_', name)
     return safe.strip().replace(' ', '_')
+
+
+# ==================== ВЫЧИСЛЯЕМЫЕ КОЛОНКИ (Calculated Fields) ====================
+
+CALCULATED_COLUMNS_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+    'config', 'calculated_columns'
+)
+
+
+def _ensure_calculated_dir():
+    """Создаёт директорию для хранения определений вычисляемых колонок."""
+    if not os.path.exists(CALCULATED_COLUMNS_DIR):
+        os.makedirs(CALCULATED_COLUMNS_DIR, exist_ok=True)
+
+
+def _resolve_column_values(expr: str, row: pd.Series) -> str:
+    """Подставляет {col_name} из строки в выражение."""
+    import re as _re
+    def _replace(m):
+        col = m.group(1)
+        val = row.get(col, '')
+        try:
+            return str(pd.to_numeric(val, errors='coerce')) if pd.notna(val) and val != '' else '0'
+        except:
+            return str(val) if pd.notna(val) and val != '' else '0'
+    return _re.sub(r'\{([^}]+)\}', _replace, expr)
+
+
+def _split_args(s: str) -> List[str]:
+    """Разбивает строку аргументов по запятым с учётом скобок."""
+    args, depth, cur, in_q, qch = [], 0, [], False, None
+    for ch in s:
+        if in_q:
+            cur.append(ch)
+            if ch == qch: in_q = False
+            continue
+        if ch in ('"', "'"): in_q, qch = True, ch; cur.append(ch); continue
+        if ch == '(': depth += 1; cur.append(ch)
+        elif ch == ')': depth -= 1; cur.append(ch)
+        elif ch == ',' and depth == 0:
+            args.append(''.join(cur).strip()); cur = []
+        else: cur.append(ch)
+    if cur: args.append(''.join(cur).strip())
+    return args
+
+
+def apply_calculated_columns(df: pd.DataFrame, calculated_columns: List[Dict[str, Any]]) -> pd.DataFrame:
+    """
+    Применяет вычисляемые колонки к DataFrame.
+    Поддерживает: +, -, *, /, SUM, AVG, ROUND, NUMBER, PERCENT, CONCAT, IF.
+    """
+    if not calculated_columns:
+        return df
+    df = df.copy()
+    for col_def in calculated_columns:
+        name = col_def.get('name', '').strip()
+        formula = col_def.get('formula', '').strip()
+        if not name or not formula:
+            continue
+        if name in df.columns:
+            suf = 1
+            while f"{name}_{suf}" in df.columns: suf += 1
+            name = f"{name}_{suf}"
+        try:
+            fl = formula.lower()
+            if fl.startswith('if(') and fl.endswith(')'):
+                parts = _split_args(formula[3:-1])
+                if len(parts) == 3:
+                    cond, tv, ev = parts[0].strip(), parts[1].strip(), parts[2].strip()
+                    def _if(row, c=cond, t=tv, e=ev):
+                        try:
+                            if eval(_resolve_column_values(c, row)):
+                                return float(eval(_resolve_column_values(t, row)))
+                            else:
+                                return float(eval(_resolve_column_values(e, row)))
+                        except:
+                            return 0
+                    df[name] = df.apply(_if, axis=1)
+                    continue
+            if fl.startswith('round(') and fl.endswith(')'):
+                parts = _split_args(formula[6:-1])
+                c = parts[0].strip().strip('{}')
+                dec = int(parts[1].strip()) if len(parts) > 1 else 0
+                if c in df.columns:
+                    df[name] = pd.to_numeric(df[c], errors='coerce').round(dec).fillna(0)
+                continue
+            if fl.startswith('number(') and fl.endswith(')'):
+                c = formula[7:-1].strip().strip('{}')
+                if c in df.columns:
+                    df[name] = pd.to_numeric(df[c], errors='coerce').fillna(0)
+                continue
+            if fl.startswith('percent(') and fl.endswith(')'):
+                c = formula[8:-1].strip().strip('{}')
+                if c in df.columns:
+                    df[name] = pd.to_numeric(df[c], errors='coerce').fillna(0) * 100
+                continue
+            if fl.startswith('concat(') and fl.endswith(')'):
+                cols = [x.strip().strip('{}') for x in _split_args(formula[7:-1])]
+                df[name] = df.apply(lambda r, cols=cols: ' '.join(str(r.get(c, '')) for c in cols), axis=1)
+                continue
+            if fl.startswith('sum(') and fl.endswith(')'):
+                c = formula[4:-1].strip().strip('{}')
+                if c in df.columns:
+                    total = pd.to_numeric(df[c], errors='coerce').sum()
+                    df[name] = total
+                continue
+            if fl.startswith('avg(') and fl.endswith(')'):
+                c = formula[4:-1].strip().strip('{}')
+                if c in df.columns:
+                    df[name] = round(pd.to_numeric(df[c], errors='coerce').mean(), 2)
+                continue
+            # Арифметика
+            def _calc(row, f=formula):
+                try:
+                    return float(eval(_resolve_column_values(f, row)))
+                except:
+                    return 0
+            df[name] = df.apply(_calc, axis=1).round(2)
+        except Exception as e:
+            logger.warning("Ошибка вычисления колонки '%s' (%s): %s", name, formula, e)
+            df[name] = 0
+    return df
+
+
+def list_calculated_columns() -> List[Dict[str, Any]]:
+    """Возвращает список сохранённых вычисляемых колонок."""
+    _ensure_calculated_dir()
+    res = []
+    if not os.path.exists(CALCULATED_COLUMNS_DIR):
+        return res
+    for fname in sorted(os.listdir(CALCULATED_COLUMNS_DIR)):
+        if fname.endswith('.json'):
+            try:
+                with open(os.path.join(CALCULATED_COLUMNS_DIR, fname), 'r', encoding='utf-8') as f:
+                    res.append(json.load(f))
+            except Exception as e:
+                logger.warning("Не удалось прочитать вычисляемую колонку %s: %s", fname, e)
+    return res
+
+
+def save_calculated_column(definition: Dict[str, Any]) -> Dict[str, Any]:
+    """Сохраняет определение вычисляемой колонки."""
+    _ensure_calculated_dir()
+    name = definition.get('name', 'unnamed')
+    filename = secure_filename_for_scenario(name) + '.json'
+    filepath = os.path.join(CALCULATED_COLUMNS_DIR, filename)
+    now = datetime.now().isoformat()
+    definition['updated_at'] = now
+    if 'created_at' not in definition:
+        definition['created_at'] = now
+    with open(filepath, 'w', encoding='utf-8') as f:
+        json.dump(definition, f, ensure_ascii=False, indent=2)
+    return definition
+
+
+def delete_calculated_column(name: str) -> bool:
+    """Удаляет определение вычисляемой колонки."""
+    _ensure_calculated_dir()
+    filename = secure_filename_for_scenario(name) + '.json'
+    filepath = os.path.join(CALCULATED_COLUMNS_DIR, filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+        return True
+    return False
+
+
+# ==================== УСЛОВНОЕ ФОРМАТИРОВАНИЕ (Conditional Formatting) ====================
+
+
+def apply_conditional_formatting(
+    data: List[Dict[str, Any]],
+    columns: List[str],
+    rules: List[Dict[str, Any]],
+) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Применяет правила условного форматирования к данным.
+    Возвращает {data, cell_styles} где cell_styles = [{row_idx, col_name, style}, ...]
+    
+    Правила:
+    - {type: 'highlight', operator: '>', value: 100, color: '#ff0000', text_color: '#fff', bold: true}
+    - {type: 'data_bar', column: 'Выручка', color: '#4CAF50'}
+    - {type: 'color_scale', column: 'Выручка', min_color: '#ff0000', mid_color: '#ffff00', max_color: '#00ff00'}
+    """
+    if not rules:
+        return {'data': data, 'cell_styles': []}
+    
+    cell_styles = []
+    df = pd.DataFrame(data)
+    
+    for rule in rules:
+        rule_type = rule.get('type', 'highlight')
+        
+        if rule_type == 'highlight':
+            column = rule.get('column', '')
+            operator = rule.get('operator', '>')
+            value = rule.get('value', '')
+            bg_color = rule.get('color', '#ff0000')
+            text_color = rule.get('text_color', '#ffffff')
+            bold = rule.get('bold', False)
+            italic = rule.get('italic', False)
+            
+            if column not in df.columns:
+                continue
+            
+            for idx, row in df.iterrows():
+                cell_val = row.get(column, '')
+                try:
+                    cell_num = pd.to_numeric(cell_val, errors='coerce')
+                except:
+                    cell_num = None
+                
+                match = False
+                if pd.notna(cell_num):
+                    try:
+                        val_num = float(value) if value != '' else 0
+                        if operator == '>' and cell_num > val_num: match = True
+                        elif operator == '<' and cell_num < val_num: match = True
+                        elif operator == '>=' and cell_num >= val_num: match = True
+                        elif operator == '<=' and cell_num <= val_num: match = True
+                        elif operator == '==' and cell_num == val_num: match = True
+                        elif operator == '!=' and cell_num != val_num: match = True
+                        elif operator == 'between' and isinstance(value, list) and len(value) == 2:
+                            try:
+                                v1, v2 = float(value[0]), float(value[1])
+                                if v1 <= cell_num <= v2: match = True
+                            except: pass
+                    except: pass
+                elif operator == 'contains' and str(value).lower() in str(cell_val).lower():
+                    match = True
+                elif operator == 'text_equals' and str(cell_val).lower() == str(value).lower():
+                    match = True
+                elif operator == 'top_n':
+                    try:
+                        n = int(value) if value else 10
+                        col_series = pd.to_numeric(df[column], errors='coerce')
+                        threshold = col_series.nlargest(n).min() if n > 0 else 0
+                        if pd.notna(cell_num) and cell_num >= threshold:
+                            match = True
+                    except: pass
+                
+                if match:
+                    style = {'row_idx': idx, 'column': column, 'bg': bg_color}
+                    if text_color:
+                        style['color'] = text_color
+                    if bold:
+                        style['bold'] = True
+                    if italic:
+                        style['italic'] = True
+                    cell_styles.append(style)
+        
+        elif rule_type == 'data_bar':
+            column = rule.get('column', '')
+            bar_color = rule.get('color', '#4CAF50')
+            if column not in df.columns:
+                continue
+            col_series = pd.to_numeric(df[column], errors='coerce')
+            min_val = col_series.min()
+            max_val = col_series.max()
+            if pd.isna(min_val) or pd.isna(max_val) or min_val == max_val:
+                continue
+            for idx, row in df.iterrows():
+                val = col_series.iloc[idx]
+                if pd.notna(val):
+                    pct = (val - min_val) / (max_val - min_val)
+                    cell_styles.append({
+                        'row_idx': idx, 'column': column,
+                        'data_bar': True, 'pct': round(pct, 4), 'color': bar_color,
+                    })
+        
+        elif rule_type == 'color_scale':
+            column = rule.get('column', '')
+            min_c = rule.get('min_color', '#ff0000')
+            mid_c = rule.get('mid_color', '#ffff00')
+            max_c = rule.get('max_color', '#00ff00')
+            if column not in df.columns:
+                continue
+            col_series = pd.to_numeric(df[column], errors='coerce')
+            min_val = col_series.min()
+            max_val = col_series.max()
+            if pd.isna(min_val) or pd.isna(max_val) or min_val == max_val:
+                continue
+            mid_val = (min_val + max_val) / 2
+            for idx, row in df.iterrows():
+                val = col_series.iloc[idx]
+                if pd.notna(val):
+                    if val <= mid_val:
+                        ratio = (val - min_val) / (mid_val - min_val) if mid_val != min_val else 0.5
+                        color = _lerp_color(min_c, mid_c, ratio)
+                    else:
+                        ratio = (val - mid_val) / (max_val - mid_val) if max_val != mid_val else 0.5
+                        color = _lerp_color(mid_c, max_c, ratio)
+                    cell_styles.append({
+                        'row_idx': idx, 'column': column,
+                        'bg': color, 'color_scale': True,
+                    })
+    
+    return {'data': data, 'cell_styles': cell_styles}
+
+
+def _lerp_color(c1: str, c2: str, t: float) -> str:
+    """Линейная интерполяция между двумя hex-цветами."""
+    try:
+        c1 = c1.lstrip('#')
+        c2 = c2.lstrip('#')
+        r1, g1, b1 = int(c1[0:2], 16), int(c1[2:4], 16), int(c1[4:6], 16)
+        r2, g2, b2 = int(c2[0:2], 16), int(c2[2:4], 16), int(c2[4:6], 16)
+        r = int(r1 + (r2 - r1) * t)
+        g = int(g1 + (g2 - g1) * t)
+        b = int(b1 + (b2 - b1) * t)
+        return f'#{r:02x}{g:02x}{b:02x}'
+    except:
+        return c1
+
+
+# ==================== СЛАЙСЕРЫ (Slicers / Interactive Filters) ====================
+
+
+def get_slicer_data(
+    df: pd.DataFrame,
+    column: str,
+    slicer_type: str = 'auto',
+) -> Dict[str, Any]:
+    """
+    Возвращает данные для построения слайсера.
+    
+    :param df: DataFrame с данными
+    :param column: Имя колонки
+    :param slicer_type: 'category', 'date', 'number', 'boolean' или 'auto'
+    :return: {type, values|min, max, steps, ...}
+    """
+    if column not in df.columns:
+        return {'type': 'text', 'values': [], 'column': column}
+    
+    series = df[column]
+    
+    # Автоопределение типа
+    if slicer_type == 'auto':
+        try:
+            numeric_count = pd.to_numeric(series, errors='coerce').notna().sum()
+            looks_like_number = numeric_count > len(series) * 0.5
+        except:
+            looks_like_number = False
+        
+        # Проверка на boolean
+        unique_vals = series.dropna().unique()
+        if len(unique_vals) == 2 and all(str(v).lower() in ('да', 'нет', 'true', 'false', '1', '0', 'yes', 'no') for v in unique_vals):
+            slicer_type = 'boolean'
+        elif looks_like_number:
+            slicer_type = 'number'
+        else:
+            # Проверка на дату
+            try:
+                date_count = _parse_dates_flexible(series.astype(str)).notna().sum()
+                if date_count > len(series) * 0.3:
+                    slicer_type = 'date'
+                else:
+                    slicer_type = 'category'
+            except:
+                slicer_type = 'category'
+    
+    if slicer_type == 'number':
+        num_series = pd.to_numeric(series, errors='coerce')
+        min_val = float(num_series.min()) if pd.notna(num_series.min()) else 0
+        max_val = float(num_series.max()) if pd.notna(num_series.max()) else 100
+        return {
+            'type': 'number',
+            'column': column,
+            'min': round(min_val, 2),
+            'max': round(max_val, 2),
+            'step': max(1, round((max_val - min_val) / 100, 2)),
+        }
+    
+    if slicer_type == 'date':
+        dt_series = _parse_dates_flexible(series.astype(str))
+        valid_dates = dt_series.dropna()
+        if len(valid_dates) > 0:
+            return {
+                'type': 'date',
+                'column': column,
+                'min': valid_dates.min().strftime('%Y-%m-%d'),
+                'max': valid_dates.max().strftime('%Y-%m-%d'),
+            }
+        return {'type': 'date', 'column': column, 'min': '', 'max': ''}
+    
+    if slicer_type == 'boolean':
+        return {
+            'type': 'boolean',
+            'column': column,
+        }
+    
+    # category (по умолчанию)
+    value_counts = series.value_counts().head(200).to_dict()
+    values = sorted(value_counts.keys(), key=lambda x: str(x))
+    return {
+        'type': 'category',
+        'column': column,
+        'values': [{'value': str(v), 'count': value_counts[v]} for v in values],
+        'total_unique': len(series.unique()),
+    }
