@@ -133,6 +133,9 @@ def create_app() -> Flask:
     csrf.exempt('/api/check_update')
     csrf.exempt('/api/check_update/status')
     csrf.exempt('/api/check_update/update_progress')
+    # Исключаем эндпоинты обновления (фронтенд не шлёт CSRF-токен, т.к. сервер всё равно перезапустится)
+    csrf.exempt('/api/apply_update')
+    csrf.exempt('/api/apply_update/restart')
     # Исключаем эндпоинты, доступные до аутентификации
     csrf.exempt('/api/auth_status')
     csrf.exempt('/api/login')
