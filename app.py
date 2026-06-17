@@ -127,24 +127,10 @@ def create_app() -> Flask:
     app.config['WTF_CSRF_METHODS'] = ['POST', 'PUT', 'PATCH', 'DELETE']  # Явно указываем методы для CSRF-проверки
     csrf = CSRFProtect()
 
-    # Исключаем public эндпоинты из CSRF-защиты
-    csrf.exempt('/api/health')
-    csrf.exempt('/api/version')
-    csrf.exempt('/api/check_update')
-    csrf.exempt('/api/check_update/status')
-    csrf.exempt('/api/check_update/update_progress')
-    # Исключаем эндпоинты обновления (фронтенд не шлёт CSRF-токен, т.к. сервер всё равно перезапустится)
-    csrf.exempt('/api/apply_update')
-    csrf.exempt('/api/apply_update/restart')
-    # Исключаем эндпоинты, доступные до аутентификации
-    csrf.exempt('/api/auth_status')
-    csrf.exempt('/api/login')
-    csrf.exempt('/api/logout')
-    csrf.exempt('/api/csrf_token')
-    csrf.exempt('/api/chat/status')
-    csrf.exempt('/api/chat/toggle')
-    csrf.exempt('/')
-
+    # Исключаем из CSRF-защиты:
+    # - эндпоинты обновления (фронтенд не шлёт CSRF-токен, сервер всё равно перезапустится)
+    # - public эндпоинты, доступные до аутентификации
+    csrf.exempt(update_bp)
     csrf.init_app(app)
 
     # -----------------------------------------------------------------------

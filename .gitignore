@@ -84,3 +84,4 @@ _upload_installer.py
 _check_release.py
 _check_release_assets.py
 _upload_installer_110.py
+_reupload_update.py
