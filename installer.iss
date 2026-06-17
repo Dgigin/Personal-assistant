@@ -11,7 +11,7 @@
 ;   "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
 
 #define MyAppName "Personal Assistant"
-#define MyAppVersion "1.2.2"
+#define MyAppVersion "1.2.3"
 #define MyAppPublisher "Dgigin"
 #define MyAppURL "https://github.com/Dgigin/Personal-assistant"
 #define MyAppExeName "run.bat"
